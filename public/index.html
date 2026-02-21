@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+  <title>Student Logs</title>
+
+  <meta charset="UTF-8">
+
+  <link rel="icon" type="image/png" href="https://www.uvu.edu/favicon.ico">
+
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">🌙</button>
+
+  <form>
+    <img src="uvu-seal.jpg" alt="Utah Valley University Seal" class="uvu-logo" id="uvuLogo">
+    <h1>Student Logs</h1>
+    <select aria-label="Select Course" id="course" name="course" data-cy="course_select">
+
+      <option selected value="">Choose Courses</option>
+    </select><br />
+
+
+    <div id="uvuIdContainer" style="display: none;">
+      <label for="uvuId">UVU ID</label><br />
+
+      <input type="text" inputmode="numeric" pattern="[0-9]*" id="uvuId" name="uvuId" data-cy="uvuId_input"
+        placeholder="01234567" maxlength="8" onkeypress="return /[0-9]/.test(event.key)" />
+    </div>
+
+    <div id="logsSection" style="display: none;">
+      <h3 id="uvuIdDisplay" data-cy="uvuIdDisplay">
+        Student Logs for 10234567
+      </h3>
+      <ul data-cy="logs">
+
+        <li>
+          <div><small>1/23/2021 1:23:36 PM</small></div>
+          <pre><p>Initial comment. Hello World</p></pre>
+        </li>
+        <li>
+          <div><small>1/24/2021 2:43:12 PM</small></div>
+          <pre><p>MongoDB is looking really good, still need to get atlas up and running.</p></pre>
+        </li>
+        <li>
+          <div><small>1/27/2021 5:58:10 PM</small></div>
+          <pre><p>Atlas is up and running</p></pre>
+        </li>
+      </ul>
+
+      <label>New Log</label><br />
+      <textarea id="addLogTextarea" style="height: 75px" aria-label="add log textarea"
+        data-cy="log_textarea"></textarea><br />
+
+      <button id="addLogBtn" type="submit" data-cy="add_log_btn" disabled>Add Log</button>
+    </div>
+
+  </form>
+
+  <!-- Axios CDN for AJAX requests -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="script.js"></script>
+</body>
+
+
+</html>
+
+<!-- DONE: move all TODOs that done above to down below here and change the label to DONE:. -->
+<!-- DONE Load the CSS file -->
+<!-- AJAX to replace them with dynamic data from GET https://json-server-di4ygf6z--3000.local.webcontainer.io/api/v1/courses -->
+<!-- NOTE: all AJAX in this project is via axios-->
+<!-- Use your own unique URL you recorded, not the sample one above. -->
+<!-- DONE: Don't show the uvu id text input box until a course was selected above. -->
+<!-- DONE: If course ever becomes unselected, don't show the uvu id text input box.-->
+<!-- DONE: write `01234567` as sample data on the input field below  -->
+<!-- DONE: Ensure the character length never exceeds 8 -->
+<!-- DONE: Only numbers, no letters or other characters-->
+<!-- DONE: When character length reaches 8 and it's only digits, fire off ajax request, if 200 or 304, display results, else appropriately guide the user. -->
+<!-- DONE: The following options are currently static values to show you an example.  -->
+<!-- You must replace them with dynamic data by ajaxing GET https://json-server-ft3qa5--3000.local.webcontainer.io/logs?courseId=<courseID>&uvuId=<uvuID> -->
+<!-- DONE: Click anywhere on the log to toggle visibility of the log (text only, not the date) -->
+<!-- DONE: Button should be disabled until the logs, if any, are displayed and there's text in the textarea -->
+<!-- DONE: Button should AJAX POST the textarea value to json-server which will store it -->
+<!-- DONE: add appropriate comments you feel are necessary, if any, for the next coder to understand -->

@@ -1,0 +1,17 @@
+{
+  "name": "node-starter",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "server": "json-server db.json --routes routes.json --static public",
+    "cy:open": "cypress open",
+    "cy:run": "cypress run"
+  },
+  "devDependencies": {
+    "cypress": "^15.10.0",
+    "json-server": "0.17.0"
+  },
+  "dependencies": {
+    "gh": "^2.8.9"
+  }
+}
