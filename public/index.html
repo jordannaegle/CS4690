@@ -1,88 +1,112 @@
 <!DOCTYPE html>
-<html lang="en-US">
+<html lang="en-US" data-bs-theme="light">
 
 <head>
   <title>Student Logs</title>
 
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <link rel="icon" type="image/png" href="https://www.uvu.edu/favicon.ico">
 
-
-  <link rel="stylesheet" href="style.css">
+  <!-- Bootstrap CSS: CDN with local fallback (onerror triggers immediate local load) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    onerror="this.onerror=null;this.href='lib/bootstrap.min.css';console.log('Bootstrap CSS: Loaded from local fallback');">
 </head>
 
-<body>
+<body class="bg-success-subtle min-vh-100 d-flex align-items-start justify-content-center py-5 px-3">
 
-  <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">🌙</button>
+  <!-- Theme Toggle -->
+  <button id="themeToggle" class="btn btn-outline-secondary rounded-circle position-fixed top-0 end-0 m-3 fs-4"
+    style="width:50px;height:50px;z-index:1050;" aria-label="Toggle dark mode">🌙</button>
 
-  <form>
-    <img src="uvu-seal.jpg" alt="Utah Valley University Seal" class="uvu-logo" id="uvuLogo">
-    <h1>Student Logs</h1>
-    <select aria-label="Select Course" id="course" name="course" data-cy="course_select">
+  <!-- Main Card -->
+  <div class="card shadow-lg border-0 w-100" style="max-width: 640px;">
+    <div class="card-body p-4">
 
-      <option selected value="">Choose Courses</option>
-    </select><br />
+      <!-- UVU Logo -->
+      <img src="uvu-seal.jpg" alt="Utah Valley University Seal" id="uvuLogo"
+        class="d-block mx-auto mb-3 rounded-circle object-fit-cover" width="140" height="140">
 
+      <!-- Title -->
+      <h1 class="text-center text-uppercase fw-bold fs-3 mb-4 text-success">Student Logs</h1>
 
-    <div id="uvuIdContainer" style="display: none;">
-      <label for="uvuId">UVU ID</label><br />
+      <!-- Course Select -->
+      <form>
+        <div class="mb-3">
+          <select class="form-select" aria-label="Select Course" id="course" name="course" data-cy="course_select">
+            <option selected value="">Choose Courses</option>
+          </select>
+        </div>
 
-      <input type="text" inputmode="numeric" pattern="[0-9]*" id="uvuId" name="uvuId" data-cy="uvuId_input"
-        placeholder="01234567" maxlength="8" onkeypress="return /[0-9]/.test(event.key)" />
+        <!-- UVU ID Input -->
+        <div id="uvuIdContainer" style="display: none;">
+          <label for="uvuId" class="form-label fw-semibold text-success">UVU ID</label>
+          <input type="text" class="form-control" inputmode="numeric" pattern="[0-9]*" id="uvuId" name="uvuId"
+            data-cy="uvuId_input" placeholder="01234567" maxlength="8">
+        </div>
+
+        <!-- Logs Section -->
+        <div id="logsSection" style="display: none;">
+          <h3 id="uvuIdDisplay" class="fw-semibold fs-5 mt-4 pb-2 border-bottom border-success border-3 text-success"
+            data-cy="uvuIdDisplay">
+            Student Logs for 10234567
+          </h3>
+
+          <ul class="list-unstyled mt-3" data-cy="logs">
+            <li class="p-3 mb-2 rounded-end border-start border-success border-4 bg-body-secondary" role="button">
+              <div><small class="text-muted fw-semibold">1/23/2021 1:23:36 PM</small></div>
+              <pre
+                class="mb-0 mt-2 bg-transparent border-0 font-monospace small"><p class="mb-0">Initial comment. Hello World</p></pre>
+            </li>
+            <li class="p-3 mb-2 rounded-end border-start border-success border-4 bg-body-secondary" role="button">
+              <div><small class="text-muted fw-semibold">1/24/2021 2:43:12 PM</small></div>
+              <pre
+                class="mb-0 mt-2 bg-transparent border-0 font-monospace small"><p class="mb-0">MongoDB is looking really good, still need to get atlas up and running.</p></pre>
+            </li>
+            <li class="p-3 mb-2 rounded-end border-start border-success border-4 bg-body-secondary" role="button">
+              <div><small class="text-muted fw-semibold">1/27/2021 5:58:10 PM</small></div>
+              <pre
+                class="mb-0 mt-2 bg-transparent border-0 font-monospace small"><p class="mb-0">Atlas is up and running</p></pre>
+            </li>
+          </ul>
+
+          <!-- New Log -->
+          <label class="form-label fw-semibold text-success">New Log</label>
+          <textarea class="form-control mb-3" id="addLogTextarea" rows="3" aria-label="add log textarea"
+            data-cy="log_textarea"></textarea>
+
+          <button id="addLogBtn" type="submit" class="btn btn-success text-uppercase fw-bold w-100"
+            data-cy="add_log_btn" disabled>Add Log</button>
+        </div>
+      </form>
+
     </div>
+  </div>
 
-    <div id="logsSection" style="display: none;">
-      <h3 id="uvuIdDisplay" data-cy="uvuIdDisplay">
-        Student Logs for 10234567
-      </h3>
-      <ul data-cy="logs">
+  <!-- jQuery: CDN with local fallback -->
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+  <script>
+    if (typeof window.jQuery === 'undefined') {
+      document.write('<script src="lib/jquery.min.js"><\/script>');
+      console.log('jQuery: Loaded from local fallback');
+    } else {
+      console.log('jQuery: Loaded from CDN');
+    }
+  </script>
 
-        <li>
-          <div><small>1/23/2021 1:23:36 PM</small></div>
-          <pre><p>Initial comment. Hello World</p></pre>
-        </li>
-        <li>
-          <div><small>1/24/2021 2:43:12 PM</small></div>
-          <pre><p>MongoDB is looking really good, still need to get atlas up and running.</p></pre>
-        </li>
-        <li>
-          <div><small>1/27/2021 5:58:10 PM</small></div>
-          <pre><p>Atlas is up and running</p></pre>
-        </li>
-      </ul>
+  <!-- Bootstrap JS: CDN with local fallback -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
+  <script>
+    if (typeof window.bootstrap === 'undefined') {
+      document.write('<script src="lib/bootstrap.min.js"><\/script>');
+      console.log('Bootstrap JS: Loaded from local fallback');
+    } else {
+      console.log('Bootstrap JS: Loaded from CDN');
+    }
+  </script>
 
-      <label>New Log</label><br />
-      <textarea id="addLogTextarea" style="height: 75px" aria-label="add log textarea"
-        data-cy="log_textarea"></textarea><br />
-
-      <button id="addLogBtn" type="submit" data-cy="add_log_btn" disabled>Add Log</button>
-    </div>
-
-  </form>
-
-  <!-- Axios CDN for AJAX requests -->
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="script.js"></script>
 </body>
 
-
 </html>
-
-<!-- DONE: move all TODOs that done above to down below here and change the label to DONE:. -->
-<!-- DONE Load the CSS file -->
-<!-- AJAX to replace them with dynamic data from GET https://json-server-di4ygf6z--3000.local.webcontainer.io/api/v1/courses -->
-<!-- NOTE: all AJAX in this project is via axios-->
-<!-- Use your own unique URL you recorded, not the sample one above. -->
-<!-- DONE: Don't show the uvu id text input box until a course was selected above. -->
-<!-- DONE: If course ever becomes unselected, don't show the uvu id text input box.-->
-<!-- DONE: write `01234567` as sample data on the input field below  -->
-<!-- DONE: Ensure the character length never exceeds 8 -->
-<!-- DONE: Only numbers, no letters or other characters-->
-<!-- DONE: When character length reaches 8 and it's only digits, fire off ajax request, if 200 or 304, display results, else appropriately guide the user. -->
-<!-- DONE: The following options are currently static values to show you an example.  -->
-<!-- You must replace them with dynamic data by ajaxing GET https://json-server-ft3qa5--3000.local.webcontainer.io/logs?courseId=<courseID>&uvuId=<uvuID> -->
-<!-- DONE: Click anywhere on the log to toggle visibility of the log (text only, not the date) -->
-<!-- DONE: Button should be disabled until the logs, if any, are displayed and there's text in the textarea -->
-<!-- DONE: Button should AJAX POST the textarea value to json-server which will store it -->
-<!-- DONE: add appropriate comments you feel are necessary, if any, for the next coder to understand -->

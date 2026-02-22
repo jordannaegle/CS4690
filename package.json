@@ -3,15 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "server": "json-server db.json --routes routes.json --static public",
+    "build": "tsc",
+    "server": "npm run build && json-server db.json --routes routes.json --static public",
     "cy:open": "cypress open",
     "cy:run": "cypress run"
   },
   "devDependencies": {
+    "@types/jquery": "^3.5.33",
+    "@types/node": "^25.3.0",
     "cypress": "^15.10.0",
-    "json-server": "0.17.0"
+    "json-server": "0.17.0",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
-    "gh": "^2.8.9"
+    "bootstrap": "^5.3.8",
+    "gh": "^2.8.9",
+    "jquery": "^4.0.0"
   }
 }
