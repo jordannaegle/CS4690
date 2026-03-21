@@ -2,8 +2,10 @@
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // Environment Settings
-    // See also https://aka.ms/tsconfig/module
     "module": "es2020",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "target": "es2020",
     "lib": [
       "es2020",
@@ -15,23 +17,20 @@
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    // Style Options
-    // "noImplicitReturns": true,
-    // "noImplicitOverride": true,
-    // "noUnusedLocals": true,
-    // "noUnusedParameters": true,
-    // "noFallthroughCasesInSwitch": true,
-    // "noPropertyAccessFromIndexSignature": true,
     // Recommended Options
     "strict": true,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
   "include": [
-    "public/**/*.ts"
+    "public/**/*.ts",
+    "models/**/*.ts",
+    "repositories/**/*.ts",
+    "*.ts"
   ],
   "exclude": [
-    "cypress"
+    "cypress",
+    "node_modules"    // <-- ADDED: Best practice to prevent TS from scanning thousands of library files
   ]
 }
