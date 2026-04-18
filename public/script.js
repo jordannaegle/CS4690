@@ -18,26 +18,29 @@ $(document).ready(() => {
     // Theme Toggle Elements
     const $themeToggle = $('#themeToggle');
     const $uvuLogo = $('#uvuLogo');
+    const apiBaseUrl = '/api/v1';
     // Theme Toggle Logic
-    function setTheme(isDark) {
-        if (isDark) {
+    function applyTheme(theme) {
+        if (theme === 'dark') {
             $('html').attr('data-bs-theme', 'dark');
             $themeToggle.text('☀️');
             $uvuLogo.attr('src', 'uvu-seal-light.jpg');
-            localStorage.setItem('theme', 'dark');
         }
         else {
             $('html').attr('data-bs-theme', 'light');
             $themeToggle.text('🌙');
             $uvuLogo.attr('src', 'uvu-seal.jpg');
-            localStorage.setItem('theme', 'light');
         }
+    }
+    function getStoredThemePreference() {
+        const storedTheme = localStorage.getItem('theme');
+        return storedTheme === 'dark' || storedTheme === 'light' ? storedTheme : null;
     }
     // Detect theme preferences from various sources
     function detectThemePreferences() {
         // 1. User stored preference (localStorage)
-        const userPref = localStorage.getItem('theme');
-        const userPrefDisplay = userPref === 'dark' ? 'dark' : (userPref === 'light' ? 'light' : 'unknown');
+        const userPref = getStoredThemePreference();
+        const userPrefDisplay = userPref ?? 'unknown';
         // 2. Browser/OS preference (via prefers-color-scheme media query)
         // Note: Browser preference reflects OS setting in most cases
         let browserPref = 'unknown';
@@ -57,45 +60,41 @@ $(document).ready(() => {
         console.log('Browser Pref:', browserPref);
         console.log('OS Pref:', osPref);
         // Determine which theme to use (cascade: user → browser/OS → light default)
-        let useDark = false;
         if (userPref === 'dark') {
-            useDark = true;
+            return 'dark';
         }
         else if (userPref === 'light') {
-            useDark = false;
+            return 'light';
         }
         else if (browserPref === 'dark') {
-            useDark = true;
+            return 'dark';
         }
         else if (browserPref === 'light') {
-            useDark = false;
+            return 'light';
         }
         else {
             // Default to light
-            useDark = false;
+            return 'light';
         }
-        return useDark;
     }
     // Initialize theme on page load
-    const shouldUseDark = detectThemePreferences();
-    setTheme(shouldUseDark);
+    applyTheme(detectThemePreferences());
     // Toggle theme on button click
     $themeToggle.on('click', () => {
-        const isDark = $('html').attr('data-bs-theme') === 'dark';
-        setTheme(!isDark);
+        const nextTheme = $('html').attr('data-bs-theme') === 'dark' ? 'light' : 'dark';
+        applyTheme(nextTheme);
+        localStorage.setItem('theme', nextTheme);
     });
     // Listen for OS color scheme changes and auto-adjust
     // Only applies if user hasn't manually set a preference
     if (window.matchMedia) {
         const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         darkModeMediaQuery.addEventListener('change', (e) => {
-            const userPref = localStorage.getItem('theme');
+            const userPref = getStoredThemePreference();
             // Only auto-switch if user hasn't set a manual preference
             if (!userPref) {
                 console.log('OS preference changed to:', e.matches ? 'dark' : 'light');
-                setTheme(e.matches);
-                // Clear the localStorage so it doesn't override future OS changes
-                localStorage.removeItem('theme');
+                applyTheme(e.matches ? 'dark' : 'light');
             }
             else {
                 console.log('OS preference changed, but user has manual preference set. Ignoring.');
@@ -103,7 +102,7 @@ $(document).ready(() => {
         });
     }
     // 1. Fetch courses using jQuery (GET)
-    $.get('http://localhost:3000/api/v1/courses')
+    $.get(`${apiBaseUrl}/courses`)
         .done((data) => {
         data.forEach((course) => {
             $('<option>')
@@ -156,7 +155,7 @@ $(document).ready(() => {
         fetchInFlight = true;
         const courseId = $courseSelect.val();
         // Construct the URL with query parameters
-        const url = `http://localhost:3000/api/v1/logs?courseId=${courseId}&uvuId=${uvuId}`;
+        const url = `${apiBaseUrl}/logs?courseId=${courseId}&uvuId=${uvuId}`;
         $.get(url)
             .done((data) => {
             renderLogs(data, uvuId);
@@ -221,7 +220,7 @@ $(document).ready(() => {
             text: $addLogTextarea.val()
         };
         $.ajax({
-            url: 'http://localhost:3000/api/v1/logs',
+            url: `${apiBaseUrl}/logs`,
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(newLog)
@@ -264,7 +263,7 @@ $(document).ready(() => {
         if (exists) {
             // Update existing course (PUT)
             $.ajax({
-                url: `http://localhost:3000/api/v1/courses/${id}`,
+                url: `${apiBaseUrl}/courses/${id}`,
                 method: 'PUT',
                 contentType: 'application/json',
                 data: JSON.stringify(courseData)
@@ -283,7 +282,7 @@ $(document).ready(() => {
         else {
             // Add new course (POST)
             $.ajax({
-                url: 'http://localhost:3000/api/v1/courses',
+                url: `${apiBaseUrl}/courses`,
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(courseData)

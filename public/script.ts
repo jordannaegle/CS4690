@@ -13,6 +13,8 @@ interface LogEntry {
     id?: string;
 }
 
+type ThemePreference = 'light' | 'dark';
+
 // Wait for DOM to be fully ready before running any jQuery selectors or logic
 $(document).ready((): void => {
 
@@ -36,26 +38,31 @@ $(document).ready((): void => {
     const $themeToggle = $('#themeToggle');
     const $uvuLogo = $('#uvuLogo');
 
+    const apiBaseUrl: string = '/api/v1';
+
     // Theme Toggle Logic
-    function setTheme(isDark: boolean): void {
-        if (isDark) {
+    function applyTheme(theme: ThemePreference): void {
+        if (theme === 'dark') {
             $('html').attr('data-bs-theme', 'dark');
             $themeToggle.text('☀️');
             $uvuLogo.attr('src', 'uvu-seal-light.jpg');
-            localStorage.setItem('theme', 'dark');
         } else {
             $('html').attr('data-bs-theme', 'light');
             $themeToggle.text('🌙');
             $uvuLogo.attr('src', 'uvu-seal.jpg');
-            localStorage.setItem('theme', 'light');
         }
     }
 
+    function getStoredThemePreference(): ThemePreference | null {
+        const storedTheme: string | null = localStorage.getItem('theme');
+        return storedTheme === 'dark' || storedTheme === 'light' ? storedTheme : null;
+    }
+
     // Detect theme preferences from various sources
-    function detectThemePreferences(): boolean {
+    function detectThemePreferences(): ThemePreference {
         // 1. User stored preference (localStorage)
-        const userPref: string | null = localStorage.getItem('theme');
-        const userPrefDisplay: string = userPref === 'dark' ? 'dark' : (userPref === 'light' ? 'light' : 'unknown');
+        const userPref: ThemePreference | null = getStoredThemePreference();
+        const userPrefDisplay: string = userPref ?? 'unknown';
 
         // 2. Browser/OS preference (via prefers-color-scheme media query)
         // Note: Browser preference reflects OS setting in most cases
@@ -78,32 +85,28 @@ $(document).ready((): void => {
         console.log('OS Pref:', osPref);
 
         // Determine which theme to use (cascade: user → browser/OS → light default)
-        let useDark: boolean = false;
-
         if (userPref === 'dark') {
-            useDark = true;
+            return 'dark';
         } else if (userPref === 'light') {
-            useDark = false;
+            return 'light';
         } else if (browserPref === 'dark') {
-            useDark = true;
+            return 'dark';
         } else if (browserPref === 'light') {
-            useDark = false;
+            return 'light';
         } else {
             // Default to light
-            useDark = false;
+            return 'light';
         }
-
-        return useDark;
     }
 
     // Initialize theme on page load
-    const shouldUseDark: boolean = detectThemePreferences();
-    setTheme(shouldUseDark);
+    applyTheme(detectThemePreferences());
 
     // Toggle theme on button click
     $themeToggle.on('click', (): void => {
-        const isDark: boolean = $('html').attr('data-bs-theme') === 'dark';
-        setTheme(!isDark);
+        const nextTheme: ThemePreference = $('html').attr('data-bs-theme') === 'dark' ? 'light' : 'dark';
+        applyTheme(nextTheme);
+        localStorage.setItem('theme', nextTheme);
     });
 
     // Listen for OS color scheme changes and auto-adjust
@@ -112,14 +115,12 @@ $(document).ready((): void => {
         const darkModeMediaQuery: MediaQueryList = window.matchMedia('(prefers-color-scheme: dark)');
 
         darkModeMediaQuery.addEventListener('change', (e: MediaQueryListEvent): void => {
-            const userPref: string | null = localStorage.getItem('theme');
+            const userPref: ThemePreference | null = getStoredThemePreference();
 
             // Only auto-switch if user hasn't set a manual preference
             if (!userPref) {
                 console.log('OS preference changed to:', e.matches ? 'dark' : 'light');
-                setTheme(e.matches);
-                // Clear the localStorage so it doesn't override future OS changes
-                localStorage.removeItem('theme');
+                applyTheme(e.matches ? 'dark' : 'light');
             } else {
                 console.log('OS preference changed, but user has manual preference set. Ignoring.');
             }
@@ -127,7 +128,7 @@ $(document).ready((): void => {
     }
 
     // 1. Fetch courses using jQuery (GET)
-    $.get('http://localhost:3000/api/v1/courses')
+    $.get(`${apiBaseUrl}/courses`)
         .done((data: Course[]): void => {
             data.forEach((course: Course): void => {
                 $('<option>')
@@ -189,7 +190,7 @@ $(document).ready((): void => {
         const courseId: string = $courseSelect.val() as string;
 
         // Construct the URL with query parameters
-        const url: string = `http://localhost:3000/api/v1/logs?courseId=${courseId}&uvuId=${uvuId}`;
+        const url: string = `${apiBaseUrl}/logs?courseId=${courseId}&uvuId=${uvuId}`;
 
         $.get(url)
             .done((data: LogEntry[]): void => {
@@ -269,7 +270,7 @@ $(document).ready((): void => {
         };
 
         $.ajax({
-            url: 'http://localhost:3000/api/v1/logs',
+            url: `${apiBaseUrl}/logs`,
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(newLog)
@@ -319,7 +320,7 @@ $(document).ready((): void => {
         if (exists) {
             // Update existing course (PUT)
             $.ajax({
-                url: `http://localhost:3000/api/v1/courses/${id}`,
+                url: `${apiBaseUrl}/courses/${id}`,
                 method: 'PUT',
                 contentType: 'application/json',
                 data: JSON.stringify(courseData)
@@ -337,7 +338,7 @@ $(document).ready((): void => {
         } else {
             // Add new course (POST)
             $.ajax({
-                url: 'http://localhost:3000/api/v1/courses',
+                url: `${apiBaseUrl}/courses`,
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(courseData)

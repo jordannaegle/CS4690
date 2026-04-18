@@ -60,6 +60,12 @@ Start the Express backend (also serves the `public/` frontend):
 npm run start
 ```
 
+You can also use:
+
+```bash
+npm run server
+```
+
 Then open your browser to: [http://localhost:3000](http://localhost:3000)
 
 ---
@@ -110,7 +116,7 @@ The Express server exposes the following endpoints at `http://localhost:3000`:
 - **Auto-Refresh** – Switching courses automatically refreshes logs for the currently entered UVU ID.
 - **Log toggle** – Click any log entry to collapse/expand the log text.
 - **Add Log** – Submit button enabled only when course, valid ID, and textarea are all filled.
-- **Light/Dark mode** – Toggled with 🌙/☀️ button; persists across sessions; auto-respects OS preference.
+- **Light/Dark mode** – Toggled with 🌙/☀️ button; follows OS preference until the user manually overrides it.
 - **UVU Branding** – Official UVU colors, seal, and font styling using Bootstrap 5.
 
 ---
@@ -119,4 +125,4 @@ The Express server exposes the following endpoints at `http://localhost:3000`:
 
 - The project uses **ESM (ECMAScript Modules)**. All relative imports in `.ts` files must include the `.js` extension (e.g., `import { x } from './y.js'`).
 - Use `npm run build` to compile the TypeScript files for production.
-- Use `npm run start` during development to run the server with `tsx` (no manual compile step needed).
+- Use `npm run start` or `npm run server` during development to run the Express server with `tsx` (no manual compile step needed).

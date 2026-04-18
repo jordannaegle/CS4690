@@ -1,17 +1,29 @@
 interface MockMediaQueryResult {
     matches: boolean;
-    addEventListener: () => void;
+    addEventListener: (event: string, listener: (event: MockMediaQueryEvent) => void) => void;
     removeEventListener: () => void;
+}
+
+interface MockMediaQueryEvent {
+    matches: boolean;
+}
+
+interface MatchMediaController {
+    triggerDarkModeChange: (matches: boolean) => void;
 }
 
 describe('Theme Light/Dark Mode', (): void => {
     // Helper function to mock matchMedia with specific preference
-    const mockMatchMedia = (win: Cypress.AUTWindow, prefersDark: boolean): void => {
+    const mockMatchMedia = (win: Cypress.AUTWindow, prefersDark: boolean): MatchMediaController => {
+        let darkModeListener: ((event: MockMediaQueryEvent) => void) | null = null;
+
         cy.stub(win, 'matchMedia').callsFake((query: string): MockMediaQueryResult => {
             if (query === '(prefers-color-scheme: dark)') {
                 return {
                     matches: prefersDark,
-                    addEventListener: (): void => { },
+                    addEventListener: (_event: string, listener: (event: MockMediaQueryEvent) => void): void => {
+                        darkModeListener = listener;
+                    },
                     removeEventListener: (): void => { }
                 };
             }
@@ -24,6 +36,12 @@ describe('Theme Light/Dark Mode', (): void => {
             }
             return { matches: false, addEventListener: (): void => { }, removeEventListener: (): void => { } };
         });
+
+        return {
+            triggerDarkModeChange(matches: boolean): void {
+                darkModeListener?.({ matches });
+            }
+        };
     };
 
     beforeEach((): void => {
@@ -42,6 +60,9 @@ describe('Theme Light/Dark Mode', (): void => {
             });
             cy.get('html').should('have.attr', 'data-bs-theme', 'light');
             cy.get('#themeToggle').should('contain', '🌙');
+            cy.window().then((win: Cypress.AUTWindow): void => {
+                expect(win.localStorage.getItem('theme')).to.equal(null);
+            });
         });
 
         it('defaults to dark mode when no user preference and OS prefers dark', (): void => {
@@ -127,6 +148,25 @@ describe('Theme Light/Dark Mode', (): void => {
                     win.localStorage.setItem('theme', 'dark');
                     mockMatchMedia(win, false); // OS prefers light
                 }
+            });
+            cy.get('html').should('have.attr', 'data-bs-theme', 'dark');
+        });
+    });
+
+    describe('OS preference changes', (): void => {
+        it('updates the theme when OS preference changes and no manual preference exists', (): void => {
+            let mediaController: MatchMediaController;
+
+            cy.visit('/', {
+                onBeforeLoad(win: Cypress.AUTWindow): void {
+                    win.localStorage.clear();
+                    mediaController = mockMatchMedia(win, false);
+                }
+            });
+
+            cy.get('html').should('have.attr', 'data-bs-theme', 'light');
+            cy.then((): void => {
+                mediaController.triggerDarkModeChange(true);
             });
             cy.get('html').should('have.attr', 'data-bs-theme', 'dark');
         });

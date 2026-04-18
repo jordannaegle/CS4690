@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "server": "npm run build && json-server db.json --routes routes.json --static public",
+    "server": "tsx server.ts",
     "cy:open": "cypress open",
     "cy:run": "cypress run",
     "start": "tsx server.ts"
