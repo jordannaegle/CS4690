@@ -26,6 +26,12 @@ $(document).ready((): void => {
     const $addLogTextarea = $('#addLogTextarea');
     const $addLogBtn = $('#addLogBtn');
 
+    // Course Management Elements
+    const $newCourseId = $('#newCourseId');
+    const $newCourseDisplay = $('#newCourseDisplay');
+    const $addCourseBtn = $('#addCourseBtn');
+    const $courseStatusMsg = $('#courseStatusMsg');
+
     // Theme Toggle Elements
     const $themeToggle = $('#themeToggle');
     const $uvuLogo = $('#uvuLogo');
@@ -134,9 +140,22 @@ $(document).ready((): void => {
             console.error('Error fetching courses:', error);
         });
 
-    // UI Logic: Show/Hide ID container
+    // UI Logic: Show/Hide ID container and reset logs on course change
     $courseSelect.on('change', (): void => {
-        $uvuIdContainer.toggle(!!$courseSelect.val());
+        const hasCourse: boolean = !!$courseSelect.val();
+        $uvuIdContainer.toggle(hasCourse);
+
+        // Clear logs display whenever course changes
+        $logList.empty();
+        $logsSection.hide();
+        $uvuIdDisplay.text('');
+
+        // If we already have a valid UVU ID, re-fetch logs for the new course
+        const uvuId: string = ($uvuIdInput.val() as string).trim();
+        if (hasCourse && uvuId.length === 8) {
+            fetchLogs(uvuId);
+        }
+        updateButtonState();
     });
 
     // Guard flag to prevent concurrent fetchLogs requests (race condition fix)
@@ -281,6 +300,62 @@ $(document).ready((): void => {
     }
 
     $addLogTextarea.on('input', updateButtonState);
-    $courseSelect.on('change', updateButtonState);
+
+    // 4. Add or Update a course using jQuery (POST or PUT)
+    $addCourseBtn.on('click', (): void => {
+        const id: string = ($newCourseId.val() as string).trim();
+        const display: string = ($newCourseDisplay.val() as string).trim();
+
+        if (!id || !display) {
+            $courseStatusMsg.text('Error: Course ID and Name are required').css('color', 'red');
+            return;
+        }
+
+        const courseData: Partial<Course> = { id, display };
+
+        // Check if course already exists in the dropdown
+        const exists: boolean = $courseSelect.find(`option[value="${id}"]`).length > 0;
+
+        if (exists) {
+            // Update existing course (PUT)
+            $.ajax({
+                url: `http://localhost:3000/api/v1/courses/${id}`,
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify(courseData)
+            })
+                .done((_response: Course): void => {
+                    $courseSelect.find(`option[value="${id}"]`).text(display);
+                    $courseStatusMsg.text('Course updated successfully!').css('color', 'green');
+                    $newCourseId.val('');
+                    $newCourseDisplay.val('');
+                })
+                .fail((_jqXHR: any, _status: string, error: string): void => {
+                    console.error('Error updating course:', error);
+                    $courseStatusMsg.text('Error updating course').css('color', 'red');
+                });
+        } else {
+            // Add new course (POST)
+            $.ajax({
+                url: 'http://localhost:3000/api/v1/courses',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(courseData)
+            })
+                .done((response: Course): void => {
+                    $('<option>')
+                        .val(response.id)
+                        .text(response.display)
+                        .appendTo($courseSelect);
+                    $courseStatusMsg.text('Course added successfully!').css('color', 'green');
+                    $newCourseId.val('');
+                    $newCourseDisplay.val('');
+                })
+                .fail((_jqXHR: any, _status: string, error: string): void => {
+                    console.error('Error adding course:', error);
+                    $courseStatusMsg.text('Error adding course').css('color', 'red');
+                });
+        }
+    });
 
 });

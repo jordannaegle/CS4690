@@ -39,6 +39,19 @@
           </select>
         </div>
 
+        <!-- Manage Courses -->
+        <div id="courseManagement" class="p-3 mb-4 rounded border border-success-subtle bg-body-tertiary">
+          <h3 class="fw-semibold fs-5 mb-3 text-success">Manage Courses</h3>
+          <div class="mb-2">
+            <input type="text" class="form-control form-control-sm" id="newCourseId" placeholder="Course ID (e.g., cs4690)">
+          </div>
+          <div class="mb-3">
+            <input type="text" class="form-control form-control-sm" id="newCourseDisplay" placeholder="Course Name (e.g., CS 4690)">
+          </div>
+          <button id="addCourseBtn" type="button" class="btn btn-outline-success btn-sm w-100 fw-bold text-uppercase">Add / Update Course</button>
+          <p id="courseStatusMsg" class="mt-2 mb-0 fw-semibold small" style="min-height: 1.5em;"></p>
+        </div>
+
         <!-- UVU ID Input -->
         <div id="uvuIdContainer" style="display: none;">
           <label for="uvuId" class="form-label fw-semibold text-success">UVU ID</label>
