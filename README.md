@@ -1,18 +1,18 @@
-# CS4690 – Student Logs
+# CS4690 – Campus Course Logs
 
-A UVU-branded web application for viewing and adding student progress logs by course. Built as a practicum project for **CS 4690** at Utah Valley University.
+A multi-tenant course log application for **Utah Valley University** and the **University of Utah**. The app now supports authentication, role-based dashboards, tenant-specific themes, and MongoDB-backed course/log management.
 
 ---
 
 ## Overview
 
-**Student Logs** is a TypeScript web application featuring a Node.js/Express backend and a MongoDB database. It allows users to:
+**Campus Course Logs** is a TypeScript web application featuring a Node.js/Express backend, session-based authentication, tenant-aware routing, and a MongoDB database. It allows users to:
 
-- Manage courses (Add/Update) via a built-in management interface.
-- Select a course from a dynamically loaded dropdown.
-- Enter an 8-digit UVU student ID to retrieve their logs for that course.
-- View, expand/collapse, and add new log entries.
-- Toggle between **light and dark mode** (respects OS preference, with manual override).
+- Sign in through tenant URLs at `/uvu/login` and `/uofu/login`
+- Use role-based dashboards for `admin`, `teacher`, `ta`, and `student`
+- Create courses, add members, and write course logs with tenant isolation
+- Let students self-enroll into courses inside their own tenant
+- Keep UVU and UofU data, users, and themes fully separated
 
 ---
 
@@ -20,12 +20,12 @@ A UVU-branded web application for viewing and adding student progress logs by co
 
 | Layer      | Technology                                      |
 |------------|-------------------------------------------------|
-| Frontend   | TypeScript, HTML5, Bootstrap 5, jQuery 3.7      |
-| Backend    | Node.js, Express 5, TypeScript (ESM)            |
+| Frontend   | TypeScript, HTML5, Bootstrap 5, custom CSS      |
+| Backend    | Node.js, Express 5, TypeScript (ESM), sessions  |
 | Database   | MongoDB (via Mongoose 9)                        |
 | Runtime    | [tsx](https://github.com/privatenumber/tsx) (for development) |
-| Testing    | [Cypress](https://www.cypress.io/) v15          |
-| Styling    | Bootstrap 5 with UVU branding (green/white)     |
+| Testing    | Node test runner + Supertest + Mongo Memory Server |
+| Styling    | Tenant-themed Bootstrap 5 + custom CSS          |
 
 ---
 
@@ -68,6 +68,16 @@ npm run server
 
 Then open your browser to: [http://localhost:3000](http://localhost:3000)
 
+Tenant entry points:
+
+- `http://localhost:3000/uvu/login`
+- `http://localhost:3000/uofu/login`
+
+Seeded admin credentials:
+
+- `root_uvu / willy`
+- `root_uofu / swoopy`
+
 ---
 
 ## Project Structure
@@ -82,9 +92,6 @@ CS4690/
 ├── models/
 │   ├── Course.ts         # Mongoose schema for Courses
 │   └── Log.ts            # Mongoose schema for Logs
-├── repositories/
-│   ├── CourseRepository.ts # Database operations for Courses
-│   └── LogRepository.ts   # Database operations for Logs
 ├── server.ts             # Express server configuration
 ├── db.ts                 # MongoDB connection logic
 ├── cypress/              # End-to-end tests
@@ -94,30 +101,30 @@ CS4690/
 
 ---
 
-## API Endpoints
+## Tenant Routing
 
-The Express server exposes the following endpoints at `http://localhost:3000`:
+Each campus uses a separate URL space and visual theme:
 
-| Method | Endpoint                                      | Description                          |
-|--------|-----------------------------------------------|--------------------------------------|
-| GET    | `/api/v1/courses`                             | Returns all available courses        |
-| POST   | `/api/v1/courses`                             | Adds a new course                    |
-| PUT    | `/api/v1/courses/:id`                         | Updates an existing course           |
-| GET    | `/api/v1/logs?courseId=<id>&uvuId=<id>`       | Returns logs for a student in a course|
-| POST   | `/api/v1/logs`                                | Adds a new log entry                 |
+- `/uvu/*` → Utah Valley University
+- `/uofu/*` → University of Utah
+
+All API access is tenant-scoped under:
+
+- `/api/uvu/*`
+- `/api/uofu/*`
 
 ---
 
 ## Features
 
-- **Course Management** – Add new courses or update existing ones directly from the UI.
-- **Dynamic course dropdown** – Populated via AJAX on page load.
-- **UVU ID validation** – Numeric only, max 8 digits; auto-fetches logs on completion.
-- **Auto-Refresh** – Switching courses automatically refreshes logs for the currently entered UVU ID.
-- **Log toggle** – Click any log entry to collapse/expand the log text.
-- **Add Log** – Submit button enabled only when course, valid ID, and textarea are all filled.
-- **Light/Dark mode** – Toggled with 🌙/☀️ button; follows OS preference until the user manually overrides it.
-- **UVU Branding** – Official UVU colors, seal, and font styling using Bootstrap 5.
+- **Role-aware authentication** – Separate login and signup pages with session-backed auth
+- **Admin page** – View all tenant users/courses/logs, create teachers/TAs/students, and create courses
+- **Teacher page** – Create courses, create TAs/students, add members, and review course logs
+- **TA page** – View assigned courses/logs, create students, and add students to a course
+- **Student page** – View only personal courses/logs and self-enroll into available courses
+- **Tenant isolation** – UVU and UofU data never mix in API responses or dashboards
+- **Tenant-specific GUI** – Green UVU theme and crimson UofU theme
+- **SPA routing** – Frontend routes for landing, login, signup, and role dashboards
 
 ---
 
@@ -126,3 +133,4 @@ The Express server exposes the following endpoints at `http://localhost:3000`:
 - The project uses **ESM (ECMAScript Modules)**. All relative imports in `.ts` files must include the `.js` extension (e.g., `import { x } from './y.js'`).
 - Use `npm run build` to compile the TypeScript files for production.
 - Use `npm run start` or `npm run server` during development to run the Express server with `tsx` (no manual compile step needed).
+- Use `npm test` to run the automated integration tests against an in-memory MongoDB instance.

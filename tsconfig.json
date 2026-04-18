@@ -26,11 +26,15 @@
   "include": [
     "public/**/*.ts",
     "models/**/*.ts",
-    "repositories/**/*.ts",
-    "*.ts"
+    "app.ts",
+    "db.ts",
+    "domain.ts",
+    "seed.ts",
+    "server.ts"
   ],
   "exclude": [
     "cypress",
+    "cypress.config.ts",
     "node_modules"    // <-- ADDED: Best practice to prevent TS from scanning thousands of library files
   ]
 }

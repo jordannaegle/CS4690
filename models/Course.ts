@@ -1,24 +1,47 @@
-// models/Course.ts
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Document, Schema, Types } from 'mongoose';
+import { TenantKey } from '../domain.js';
 
-// 1. Create an interface representing a document in MongoDB
 export interface ICourse extends Document {
-  id: string;
-  display: string;
+  tenant: TenantKey;
+  code: string;
+  title: string;
+  teacherId: Types.ObjectId;
+  createdById: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-// 2. Create the Schema using the interface
-const courseSchema: Schema = new Schema({
-  id: { 
-    type: String, 
-    required: true, 
-    unique: true 
+const courseSchema: Schema<ICourse> = new Schema(
+  {
+    tenant: {
+      type: String,
+      enum: ['uvu', 'uofu'],
+      required: true
+    },
+    code: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    title: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    teacherId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    createdById: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    }
   },
-  display: { 
-    type: String, 
-    required: true 
-  }
-});
+  { timestamps: true }
+);
 
-// 3. Export the strongly-typed model
+courseSchema.index({ tenant: 1, code: 1 }, { unique: true });
+
 export default mongoose.model<ICourse>('Course', courseSchema);

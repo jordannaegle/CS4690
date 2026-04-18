@@ -1,0 +1,252 @@
+/* ============================================================
+   Tenant theming — maps campus palette onto Bootstrap 5's
+   CSS variable system so btn-primary, badges, focus rings,
+   alerts, etc. all adopt the correct campus color.
+   ============================================================ */
+:root {
+  --bs-primary: #546274;
+  --bs-primary-rgb: 84, 98, 116;
+  --bs-link-color: #546274;
+  --bs-link-hover-color: #2b3440;
+  --bs-body-bg: #f4f6f8;
+  --bs-body-color: #25303b;
+  --bs-secondary-bg: #eef1f4;
+  --tenant-hero: linear-gradient(135deg, rgba(84, 98, 116, 0.96), rgba(43, 52, 64, 0.96));
+}
+
+[data-tenant="uvu"] {
+  --bs-primary: #2f6b3f;
+  --bs-primary-rgb: 47, 107, 63;
+  --bs-link-color: #2f6b3f;
+  --bs-link-hover-color: #193f26;
+  --bs-body-bg: #f5fbf4;
+  --bs-body-color: #15311f;
+  --bs-secondary-bg: #eef7ef;
+  --tenant-hero: linear-gradient(135deg, rgba(47, 107, 63, 0.96), rgba(22, 55, 31, 0.96));
+}
+
+[data-tenant="uofu"] {
+  --bs-primary: #b60019;
+  --bs-primary-rgb: 182, 0, 25;
+  --bs-link-color: #b60019;
+  --bs-link-hover-color: #5f0010;
+  --bs-body-bg: #fcf7f7;
+  --bs-body-color: #2e1518;
+  --bs-secondary-bg: #f8eeee;
+  --tenant-hero: linear-gradient(135deg, rgba(182, 0, 25, 0.96), rgba(70, 0, 10, 0.95));
+}
+
+/* ============================================================
+   Bootstrap btn-primary inherits --bs-primary automatically
+   in Bootstrap 5.3+ via btn-primary's CSS var references.
+   These rules ensure the compiled solid button uses it too.
+   ============================================================ */
+.btn-primary {
+  --bs-btn-bg: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--bs-primary) 85%, black);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--bs-primary) 85%, black);
+  --bs-btn-active-bg: color-mix(in srgb, var(--bs-primary) 75%, black);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-bg: var(--bs-primary);
+  --bs-btn-active-bg: var(--bs-primary);
+}
+
+.badge.bg-primary,
+.badge.text-bg-primary {
+  background-color: var(--bs-primary) !important;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(var(--bs-primary-rgb), 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.92)),
+    var(--bs-body-bg);
+}
+
+.container {
+  max-width: 1180px;
+}
+
+.card {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 1.2rem;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+}
+
+.card-header {
+  background: rgba(255, 255, 255, 0.84);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.form-control,
+.form-select,
+.btn,
+.alert,
+.input-group-text {
+  border-radius: 0.9rem;
+}
+
+.form-control,
+.form-select {
+  border-color: rgba(15, 23, 42, 0.12);
+  min-height: 2.85rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: rgba(var(--bs-primary-rgb), 0.45);
+  box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.15);
+}
+
+.btn {
+  font-weight: 600;
+}
+
+.btn-link {
+  border-radius: 0.75rem;
+}
+
+.list-group-item {
+  background: transparent;
+}
+
+/* ============================================================
+   Brand / logo styles — no Bootstrap equivalent
+   ============================================================ */
+.brand-mark {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.brand-seal {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.brand-seal-square {
+  object-fit: contain;
+  padding: 0.2rem;
+}
+
+.brand-seal-round {
+  border-radius: 14px;
+}
+
+.switch-mark {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: white;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  background: var(--tenant-hero);
+}
+
+/* ============================================================
+   Tenant hero gradient — used on dashboard header & auth panel
+   ============================================================ */
+.tenant-hero {
+  background: var(--tenant-hero) !important;
+  color: #fff !important;
+  border: none;
+  box-shadow: 0 24px 50px rgba(var(--bs-primary-rgb), 0.2);
+}
+
+.tenant-hero .text-muted,
+.tenant-hero .eyebrow {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+
+/* ============================================================
+   Eyebrow label utility
+   ============================================================ */
+.eyebrow {
+  display: block;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color, #6c757d);
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+/* ============================================================
+   Credential hint box — login page seed info
+   ============================================================ */
+.credential-hint {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bs-secondary-bg);
+  border-radius: 8px;
+}
+
+[data-cy="dashboard_stats"] .card {
+  backdrop-filter: blur(10px);
+}
+
+[data-cy="course_card"] .card-body {
+  padding: 1.35rem;
+}
+
+[data-cy="course_members"] .card {
+  box-shadow: none;
+  border-radius: 1rem;
+  background: var(--bs-secondary-bg) !important;
+}
+
+[data-cy="self_enroll_button"] {
+  min-height: 4.25rem;
+  border-width: 1px;
+}
+
+[data-cy="self_enroll_button"]:hover,
+[data-cy="self_enroll_button"]:focus {
+  border-color: rgba(var(--bs-primary-rgb), 0.45);
+  background: rgba(var(--bs-primary-rgb), 0.06);
+}
+
+/* ============================================================
+   Campus card seal sizing on landing page
+   ============================================================ */
+.campus-seal {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.campus-seal-square {
+  object-fit: contain;
+  padding: 0.2rem;
+}
+
+.campus-seal-round {
+  border-radius: 50%;
+}
+
+@media (max-width: 767px) {
+  .brand-mark {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+}

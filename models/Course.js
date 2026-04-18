@@ -1,17 +1,31 @@
-// models/Course.ts
 import mongoose, { Schema } from 'mongoose';
-// 2. Create the Schema using the interface
 const courseSchema = new Schema({
-    id: {
+    tenant: {
+        type: String,
+        enum: ['uvu', 'uofu'],
+        required: true
+    },
+    code: {
         type: String,
         required: true,
-        unique: true
+        trim: true
     },
-    display: {
+    title: {
         type: String,
+        required: true,
+        trim: true
+    },
+    teacherId: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    createdById: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
         required: true
     }
-});
-// 3. Export the strongly-typed model
+}, { timestamps: true });
+courseSchema.index({ tenant: 1, code: 1 }, { unique: true });
 export default mongoose.model('Course', courseSchema);
 //# sourceMappingURL=Course.js.map

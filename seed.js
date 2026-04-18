@@ -1,26 +1,37 @@
-// seed.ts
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import fs from 'fs';
-import Course from './models/Course.js';
-import Log from './models/Log.js';
-dotenv.config();
-const seedDB = async () => {
-    try {
-        await mongoose.connect(process.env.MONGO_URI || '');
-        console.log('Connected to MongoDB for seeding...');
-        const data = JSON.parse(fs.readFileSync('./db.json', 'utf-8'));
-        await Course.deleteMany({});
-        await Log.deleteMany({});
-        await Course.insertMany(data.courses);
-        await Log.insertMany(data.logs);
-        console.log('Database Seeded!');
-        process.exit();
+import bcrypt from 'bcryptjs';
+import User from './models/User.js';
+export async function ensureSeedData() {
+    const rootAccounts = [
+        {
+            tenant: 'uvu',
+            username: 'root_uvu',
+            displayName: 'Root UVU',
+            role: 'admin',
+            password: 'willy'
+        },
+        {
+            tenant: 'uofu',
+            username: 'root_uofu',
+            displayName: 'Root UofU',
+            role: 'admin',
+            password: 'swoopy'
+        }
+    ];
+    for (const rootAccount of rootAccounts) {
+        const existingUser = await User.findOne({
+            tenant: rootAccount.tenant,
+            username: rootAccount.username
+        });
+        if (!existingUser) {
+            const passwordHash = await bcrypt.hash(rootAccount.password, 10);
+            await User.create({
+                tenant: rootAccount.tenant,
+                username: rootAccount.username,
+                displayName: rootAccount.displayName,
+                role: rootAccount.role,
+                passwordHash
+            });
+        }
     }
-    catch (error) {
-        console.error('Error seeding database:', error);
-        process.exit(1);
-    }
-};
-seedDB();
+}
 //# sourceMappingURL=seed.js.map
