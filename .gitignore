@@ -9,15 +9,10 @@ node_modules/
 *.js.map
 !cypress.config.js
 !package.json
-!db.json
-!db.bak.json
-!routes.json
 
 # Nested Compiled output
 models/*.js
 models/*.js.map
-repositories/*.js
-repositories/*.js.map
 public/*.js
 public/*.js.map
 

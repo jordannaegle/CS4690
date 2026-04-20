@@ -176,7 +176,6 @@ CS4690/
 │   ├── script.js           # Compiled frontend bundle served by the browser
 │   ├── styles.css          # Bootstrap overrides and custom styling
 │   ├── uvu-seal.jpg        # UVU image asset
-│   ├── uvu-seal-light.jpg  # Additional UVU image asset
 │   └── BlockU_RGB.jpg      # UofU image asset
 ├── models/
 │   ├── Course.ts           # Course schema
@@ -197,5 +196,5 @@ CS4690/
 ## Notes
 
 - The project uses ESM-style imports in TypeScript.
-- The app uses MongoDB through Mongoose, not `db.json`, for the current application flow.
+- The app uses MongoDB through Mongoose for the current application flow.
 - If frontend changes do not show up, rebuild with `npm run build` and refresh the browser.

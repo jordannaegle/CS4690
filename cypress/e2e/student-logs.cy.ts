@@ -57,7 +57,10 @@ describe('Tenant routing and admin workflows', (): void => {
     cy.get('[data-cy="seeded_admin_hint"]').should('contain', 'root_uofu / swoopy');
 
     cy.visit('/uvu/admin');
-    cy.location('pathname').should('eq', '/uvu/login');
+    cy.location('pathname').should('eq', '/uvu/admin');
+    cy.get('[data-cy="auth_page"]').should('have.attr', 'data-tenant', 'uvu');
+    cy.get('[data-cy="seeded_admin_hint"]').should('contain', 'root_uvu / willy');
+    cy.get('[data-cy="flash_message"]').should('contain', 'Please sign in to continue.');
   });
 
   it('logs out non-admin users who manually visit the admin create-teacher route', (): void => {
@@ -136,9 +139,11 @@ describe('Tenant routing and admin workflows', (): void => {
     cy.uiLogin('uvu', teacherOneUsername, 'teacherpass');
     cy.location('pathname').should('eq', '/uvu/teacher');
 
-    cy.visit(`/uvu/teacher/courses/${courseTwoId}`);
-    cy.location('pathname').should('eq', '/uvu/login');
-    cy.get('[data-cy="flash_message"]').should('contain', 'Protected route access was denied');
-    cy.get('@consoleWarn').should('have.been.called');
+    cy.then(() => {
+      cy.visit(`/uvu/teacher/courses/${courseTwoId}`);
+      cy.location('pathname').should('eq', '/uvu/login');
+      cy.get('[data-cy="flash_message"]').should('contain', 'Protected route access was denied');
+      cy.get('@consoleWarn').should('have.been.called');
+    });
   });
 });
