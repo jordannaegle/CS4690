@@ -63,6 +63,19 @@ test('session check returns no content instead of 401 when not logged in', async
   assert.equal(response.text, '');
 });
 
+test('global session endpoint reports the currently signed-in tenant session', async () => {
+  const agent = request.agent(app);
+
+  await loginAs(agent, 'uvu', 'root_uvu', 'willy');
+
+  const response = await agent.get('/api/auth/session');
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.tenant.slug, 'uvu');
+  assert.equal(response.body.user.username, 'root_uvu');
+  assert.equal(response.body.route, '/uvu/admin');
+});
+
 test('tenant admins cannot see each others users, courses, or logs', async () => {
   const uvuAdmin = request.agent(app);
   const uofuAdmin = request.agent(app);
@@ -375,4 +388,136 @@ test('admins can delete courses and cascade enrollments and logs', async () => {
     courseId: course._id
   }).lean();
   assert.equal(remainingLogs.length, 0);
+});
+
+test('admins can create and delete another admin while preserving at least one admin', async () => {
+  const adminAgent = request.agent(app);
+
+  await loginAs(adminAgent, 'uvu', 'root_uvu', 'willy');
+  const rootAdmin = await User.findOne({ tenant: 'uvu', username: 'root_uvu' }).lean();
+  assert.ok(rootAdmin);
+
+  const createAdminResponse = await adminAgent.post('/api/uvu/users').send({
+    displayName: 'Second Admin',
+    username: 'second_admin',
+    password: 'adminpass',
+    role: 'admin'
+  });
+
+  assert.equal(createAdminResponse.status, 201);
+
+  const secondAdmin = await User.findOne({ tenant: 'uvu', username: 'second_admin' }).lean();
+  assert.ok(secondAdmin);
+
+  const deleteAdminResponse = await adminAgent.delete(`/api/uvu/users/${String(secondAdmin._id)}`);
+  assert.equal(deleteAdminResponse.status, 200);
+
+  const deletedAdmin = await User.findOne({ tenant: 'uvu', username: 'second_admin' }).lean();
+  assert.equal(deletedAdmin, null);
+
+  const selfDeleteResponse = await adminAgent.delete(`/api/uvu/users/${String(rootAdmin._id)}`);
+  assert.equal(selfDeleteResponse.status, 400);
+});
+
+test('detail endpoints block non-visible course, student, and log URLs', async () => {
+  const adminAgent = request.agent(app);
+  const teacherOneAgent = request.agent(app);
+  const studentOneAgent = request.agent(app);
+  const studentTwoAgent = request.agent(app);
+
+  await loginAs(adminAgent, 'uvu', 'root_uvu', 'willy');
+
+  await adminAgent.post('/api/uvu/users').send({
+    displayName: 'Teacher One',
+    username: 'teacher_one',
+    password: 'teacherpass',
+    role: 'teacher'
+  });
+
+  await adminAgent.post('/api/uvu/users').send({
+    displayName: 'Teacher Two',
+    username: 'teacher_two',
+    password: 'teacherpass',
+    role: 'teacher'
+  });
+
+  const teacherOne = await User.findOne({ tenant: 'uvu', username: 'teacher_one' }).lean();
+  const teacherTwo = await User.findOne({ tenant: 'uvu', username: 'teacher_two' }).lean();
+  assert.ok(teacherOne);
+  assert.ok(teacherTwo);
+
+  await adminAgent.post('/api/uvu/courses').send({
+    code: 'CS 4701',
+    title: 'Course One',
+    teacherId: String(teacherOne._id)
+  });
+
+  await adminAgent.post('/api/uvu/courses').send({
+    code: 'CS 4702',
+    title: 'Course Two',
+    teacherId: String(teacherTwo._id)
+  });
+
+  const courseOne = await Course.findOne({ tenant: 'uvu', code: 'CS 4701' }).lean();
+  const courseTwo = await Course.findOne({ tenant: 'uvu', code: 'CS 4702' }).lean();
+  assert.ok(courseOne);
+  assert.ok(courseTwo);
+
+  await studentOneAgent.post('/api/uvu/auth/signup').send({
+    displayName: 'Student One',
+    username: 'student_one',
+    password: 'studentpass'
+  });
+
+  await studentTwoAgent.post('/api/uvu/auth/signup').send({
+    displayName: 'Student Two',
+    username: 'student_two',
+    password: 'studentpass'
+  });
+
+  const studentOne = await User.findOne({ tenant: 'uvu', username: 'student_one' }).lean();
+  const studentTwo = await User.findOne({ tenant: 'uvu', username: 'student_two' }).lean();
+  assert.ok(studentOne);
+  assert.ok(studentTwo);
+
+  await studentOneAgent.post(`/api/uvu/courses/${String(courseOne._id)}/self-enroll`);
+  await studentTwoAgent.post(`/api/uvu/courses/${String(courseTwo._id)}/self-enroll`);
+
+  await studentOneAgent.post('/api/uvu/logs').send({
+    courseId: String(courseOne._id),
+    text: 'Student one log'
+  });
+
+  await studentTwoAgent.post('/api/uvu/logs').send({
+    courseId: String(courseTwo._id),
+    text: 'Student two log'
+  });
+
+  const logOne = await Log.findOne({ tenant: 'uvu', courseId: courseOne._id }).lean();
+  const logTwo = await Log.findOne({ tenant: 'uvu', courseId: courseTwo._id }).lean();
+  assert.ok(logOne);
+  assert.ok(logTwo);
+
+  await loginAs(teacherOneAgent, 'uvu', 'teacher_one', 'teacherpass');
+
+  const ownCourseResponse = await teacherOneAgent.get(`/api/uvu/courses/${String(courseOne._id)}`);
+  assert.equal(ownCourseResponse.status, 200);
+  assert.equal(ownCourseResponse.body.course.code, 'CS 4701');
+
+  const blockedCourseResponse = await teacherOneAgent.get(`/api/uvu/courses/${String(courseTwo._id)}`);
+  assert.equal(blockedCourseResponse.status, 403);
+
+  const ownStudentResponse = await teacherOneAgent.get(`/api/uvu/students/${String(studentOne._id)}`);
+  assert.equal(ownStudentResponse.status, 200);
+  assert.equal(ownStudentResponse.body.student.username, 'student_one');
+
+  const blockedStudentResponse = await teacherOneAgent.get(`/api/uvu/students/${String(studentTwo._id)}`);
+  assert.equal(blockedStudentResponse.status, 403);
+
+  const ownLogResponse = await teacherOneAgent.get(`/api/uvu/logs/${String(logOne._id)}`);
+  assert.equal(ownLogResponse.status, 200);
+  assert.equal(ownLogResponse.body.log.text, 'Student one log');
+
+  const blockedLogResponse = await teacherOneAgent.get(`/api/uvu/logs/${String(logTwo._id)}`);
+  assert.equal(blockedLogResponse.status, 403);
 });

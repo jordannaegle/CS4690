@@ -95,38 +95,44 @@ describe('Role pages and student flows', (): void => {
     cy.uiLogin('uvu', teacherUsername, teacherPassword);
     cy.location('pathname').should('eq', '/uvu/teacher');
     cy.get('[data-cy="dashboard_page"]').should('have.attr', 'data-role', 'teacher');
+    cy.get('[data-cy="open_create_course_page_button"]').should('be.visible');
+    cy.get('[data-cy="open_create_ta_page_button"]').click();
+    cy.location('pathname').should('eq', '/uvu/teacher/create-ta');
 
-    cy.get('[data-cy="create_user_form"]').within((): void => {
-      cy.get('[data-cy="create_user_display_name_input"]').type(taDisplayName);
-      cy.get('[data-cy="create_user_username_input"]').type(taUsername);
-      cy.get('[data-cy="create_user_password_input"]').type(taPassword);
-      cy.get('[data-cy="create_user_role_select"]').select('ta');
-      cy.get('[data-cy="create_user_course_select"]').select(`${courseCode} · ${courseTitle}`);
-      cy.get('[data-cy="create_user_submit"]').click();
+    cy.get('[data-cy="create_ta_form"]').within((): void => {
+      cy.get('[data-cy="ta_display_name_input"]').type(taDisplayName);
+      cy.get('[data-cy="ta_username_input"]').type(taUsername);
+      cy.get('[data-cy="ta_password_input"]').type(taPassword);
+      cy.get('[data-cy="ta_course_select"]').select(`${courseCode} · ${courseTitle}`);
+      cy.get('[data-cy="create_ta_submit"]').click();
     });
 
-    cy.get('[data-cy="flash_message"]').should('contain', 'User created.');
+    cy.get('[data-cy="flash_message"]').should('contain', 'TA created.');
+    cy.get('[data-cy="back_to_role_home_button"]').click();
+    cy.location('pathname').should('eq', '/uvu/teacher');
     cy.get(`[data-cy="course_card"][data-course-code="${courseCode}"] [data-cy="tas_list"]`).should('contain', taDisplayName);
-    cy.get('[data-cy="create_course_panel"]').should('be.visible');
 
     cy.get('[data-cy="logout_button"]').click();
     cy.uiLogin('uvu', taUsername, taPassword);
 
     cy.location('pathname').should('eq', '/uvu/ta');
     cy.get('[data-cy="dashboard_page"]').should('have.attr', 'data-role', 'ta');
-    cy.get('[data-cy="create_course_panel"]').should('not.exist');
-    cy.get('[data-cy="create_user_role_select"] option').should('have.length', 1);
-    cy.get('[data-cy="create_user_role_select"]').should('have.value', 'student');
+    cy.get('[data-cy="open_create_course_page_button"]').should('not.exist');
+    cy.get('[data-cy="open_create_ta_page_button"]').should('not.exist');
+    cy.get('[data-cy="open_create_student_page_button"]').should('be.visible').click();
+    cy.location('pathname').should('eq', '/uvu/ta/create-student');
 
-    cy.get('[data-cy="create_user_form"]').within((): void => {
-      cy.get('[data-cy="create_user_display_name_input"]').type(studentDisplayName);
-      cy.get('[data-cy="create_user_username_input"]').type(studentUsername);
-      cy.get('[data-cy="create_user_password_input"]').type('studentpass');
-      cy.get('[data-cy="create_user_course_select"]').select(`${courseCode} · ${courseTitle}`);
-      cy.get('[data-cy="create_user_submit"]').click();
+    cy.get('[data-cy="create_student_form"]').within((): void => {
+      cy.get('[data-cy="student_display_name_input"]').type(studentDisplayName);
+      cy.get('[data-cy="student_username_input"]').type(studentUsername);
+      cy.get('[data-cy="student_password_input"]').type('studentpass');
+      cy.get('[data-cy="student_course_select"]').select(`${courseCode} · ${courseTitle}`);
+      cy.get('[data-cy="create_student_submit"]').click();
     });
 
-    cy.get('[data-cy="flash_message"]').should('contain', 'User created.');
+    cy.get('[data-cy="flash_message"]').should('contain', 'Student created.');
+    cy.get('[data-cy="back_to_role_home_button"]').click();
+    cy.location('pathname').should('eq', '/uvu/ta');
     cy.get(`[data-cy="course_card"][data-course-code="${courseCode}"] [data-cy="students_list"]`).should('contain', studentDisplayName);
   });
 });

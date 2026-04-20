@@ -379,6 +379,34 @@ export function createApp(options: AppOptions = {}) {
   );
   app.use(express.static(publicDirectory));
 
+  app.get('/api/auth/session', async (req: Request, res: Response) => {
+    const auth = getSessionAuth(req);
+
+    if (!auth || !isTenantKey(auth.tenant)) {
+      res.status(204).end();
+      return;
+    }
+
+    const user = await User.findById(auth.userId).lean();
+
+    if (!user || user.tenant !== auth.tenant) {
+      clearSessionAuth(req);
+      res.status(204).end();
+      return;
+    }
+
+    sendAuthPayload(
+      res,
+      {
+        _id: user._id,
+        username: user.username,
+        displayName: user.displayName,
+        role: user.role
+      },
+      auth.tenant
+    );
+  });
+
   app.get('/api/tenants', (_req: Request, res: Response) => {
     res.json({ tenants: Object.values(TENANTS) });
   });
@@ -496,6 +524,146 @@ export function createApp(options: AppOptions = {}) {
     }
 
     res.json(await buildDashboard(tenant, user));
+  });
+
+  tenantRouter.get('/courses/:courseId', requireAuth, async (req: AuthedRequest, res: Response) => {
+    const tenant = req.currentTenant as TenantKey;
+    const actor = req.currentUser;
+    const courseIdParam = req.params.courseId;
+    const courseId = Array.isArray(courseIdParam) ? courseIdParam[0] : courseIdParam;
+
+    if (!actor) {
+      res.status(401).json({ message: 'Authentication required' });
+      return;
+    }
+
+    if (!courseId || !Types.ObjectId.isValid(courseId)) {
+      res.status(400).json({ message: 'Invalid course ID' });
+      return;
+    }
+
+    const dashboard = await buildDashboard(tenant, actor);
+    const course = dashboard.courses.find((visibleCourse) => visibleCourse.id === courseId);
+
+    if (!course) {
+      const existingCourse = await Course.exists({ tenant, _id: new Types.ObjectId(courseId) });
+      res.status(existingCourse ? 403 : 404).json({
+        message: existingCourse ? 'You do not have permission to view that course' : 'Course not found for this tenant'
+      });
+      return;
+    }
+
+    res.json({ course });
+  });
+
+  tenantRouter.get('/students/:studentId', requireAuth, async (req: AuthedRequest, res: Response) => {
+    const tenant = req.currentTenant as TenantKey;
+    const actor = req.currentUser;
+    const studentIdParam = req.params.studentId;
+    const studentId = Array.isArray(studentIdParam) ? studentIdParam[0] : studentIdParam;
+
+    if (!actor) {
+      res.status(401).json({ message: 'Authentication required' });
+      return;
+    }
+
+    if (!studentId || !Types.ObjectId.isValid(studentId)) {
+      res.status(400).json({ message: 'Invalid student ID' });
+      return;
+    }
+
+    const student = await User.findOne({
+      tenant,
+      _id: new Types.ObjectId(studentId),
+      role: 'student'
+    }).lean();
+
+    if (!student) {
+      res.status(404).json({ message: 'Student not found for this tenant' });
+      return;
+    }
+
+    const dashboard = await buildDashboard(tenant, actor);
+    const visibleCourses = dashboard.courses.filter((course) => (
+      course.students.some((courseStudent) => courseStudent.id === studentId) ||
+      (actor.role === 'student' && actor.id === studentId && course.membershipRole === 'student')
+    ));
+
+    const canViewStudent =
+      actor.role === 'admin' ||
+      (actor.role === 'student' && actor.id === studentId) ||
+      visibleCourses.length > 0;
+
+    if (!canViewStudent) {
+      res.status(403).json({ message: 'You do not have permission to view that student' });
+      return;
+    }
+
+    const logs = visibleCourses.flatMap((course) => (
+      course.logs
+        .filter((log) => log.student.id === studentId)
+        .map((log) => ({
+          ...log,
+          course: {
+            id: course.id,
+            code: course.code,
+            title: course.title
+          }
+        }))
+    ));
+
+    res.json({
+      student: toUserSummary(student),
+      courses: visibleCourses.map((course) => ({
+        id: course.id,
+        code: course.code,
+        title: course.title
+      })),
+      logs
+    });
+  });
+
+  tenantRouter.get('/logs/:logId', requireAuth, async (req: AuthedRequest, res: Response) => {
+    const tenant = req.currentTenant as TenantKey;
+    const actor = req.currentUser;
+    const logIdParam = req.params.logId;
+    const logId = Array.isArray(logIdParam) ? logIdParam[0] : logIdParam;
+
+    if (!actor) {
+      res.status(401).json({ message: 'Authentication required' });
+      return;
+    }
+
+    if (!logId || !Types.ObjectId.isValid(logId)) {
+      res.status(400).json({ message: 'Invalid log ID' });
+      return;
+    }
+
+    const dashboard = await buildDashboard(tenant, actor);
+
+    for (const course of dashboard.courses) {
+      const log = course.logs.find((visibleLog) => visibleLog.id === logId);
+
+      if (log) {
+        res.json({
+          log: {
+            ...log,
+            course: {
+              id: course.id,
+              code: course.code,
+              title: course.title,
+              membershipRole: course.membershipRole
+            }
+          }
+        });
+        return;
+      }
+    }
+
+    const existingLog = await Log.exists({ tenant, _id: new Types.ObjectId(logId) });
+    res.status(existingLog ? 403 : 404).json({
+      message: existingLog ? 'You do not have permission to view that log' : 'Log not found for this tenant'
+    });
   });
 
   tenantRouter.post('/users', requireAuth, async (req: AuthedRequest, res: Response) => {
@@ -837,8 +1005,12 @@ export function createApp(options: AppOptions = {}) {
     }
 
     if (targetUser.role === 'admin') {
-      res.status(403).json({ message: 'Admin accounts cannot be deleted from the directory' });
-      return;
+      const adminCount = await User.countDocuments({ tenant, role: 'admin' });
+
+      if (adminCount <= 1) {
+        res.status(409).json({ message: 'At least one admin account must remain for this school' });
+        return;
+      }
     }
 
     if (targetUser.role === 'teacher') {

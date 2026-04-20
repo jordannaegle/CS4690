@@ -1,50 +1,56 @@
-# CS4690 – Campus Course Logs
+# CS4690 - Campus Course Logs
 
-A multi-tenant course log application for **Utah Valley University** and the **University of Utah**. The app now supports authentication, role-based dashboards, tenant-specific themes, and MongoDB-backed course/log management.
-
----
+Campus Course Logs is a school-separated course log application for **Utah Valley University** and the **University of Utah**. It uses a TypeScript Express backend, a TypeScript single-page frontend, MongoDB with Mongoose, and role-based access for admins, teachers, TAs, and students.
 
 ## Overview
 
-**Campus Course Logs** is a TypeScript web application featuring a Node.js/Express backend, session-based authentication, tenant-aware routing, and a MongoDB database. It allows users to:
+The application supports:
 
-- Sign in through tenant URLs at `/uvu/login` and `/uofu/login`
-- Use role-based dashboards for `admin`, `teacher`, `ta`, and `student`
-- Create courses, add members, and write course logs with tenant isolation
-- Let students self-enroll into courses inside their own tenant
-- Keep UVU and UofU data, users, and themes fully separated
+- Separate school URLs at `/uvu/*` and `/uofu/*`
+- School-specific themes for UVU and UofU
+- Session-backed login and signup
+- Role-based dashboards for `admin`, `teacher`, `ta`, and `student`
+- Dedicated pages for creating courses and user accounts
+- Student self-enrollment into available courses
+- Course-specific logs with school isolation
+- Protection against cross-school and unauthorized manual URL access
 
----
+## Current Roles
+
+- `admin` can view all school data, create courses, create admins, teachers, TAs, and students, and delete users or courses
+- `teacher` can create courses, create TAs, create students, manage their courses, and review logs in their courses
+- `ta` can view assigned courses and logs, create students, and add students to assigned courses
+- `student` can view only personal courses and logs, self-enroll in available courses, and add personal logs
 
 ## Tech Stack
 
-| Layer      | Technology                                      |
-|------------|-------------------------------------------------|
-| Frontend   | TypeScript, HTML5, Bootstrap 5, custom CSS      |
-| Backend    | Node.js, Express 5, TypeScript (ESM), sessions  |
-| Database   | MongoDB (via Mongoose 9)                        |
-| Runtime    | [tsx](https://github.com/privatenumber/tsx) (for development) |
-| Testing    | Node test runner + Supertest + Mongo Memory Server |
-| Styling    | Tenant-themed Bootstrap 5 + custom CSS          |
-
----
+| Layer | Technology |
+| --- | --- |
+| Frontend | TypeScript, HTML5, Bootstrap 5, custom CSS |
+| Backend | Node.js, Express 5, TypeScript, `express-session` |
+| Database | MongoDB with Mongoose |
+| Runtime | `tsx` for local server execution |
+| Automated tests | Node test runner, Supertest, Mongo Memory Server |
+| End-to-end tests | Cypress |
 
 ## Getting Started
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18+ recommended)
+- Node.js
 - npm
-- A MongoDB instance (local or Atlas)
+- A MongoDB instance running locally or in the cloud
 
-### Configuration
+### Environment Variables
 
-Create a `.env` file in the root directory and add your MongoDB connection string:
+Create a `.env` file in the project root:
 
 ```env
 MONGO_URI=your_mongodb_connection_string
 PORT=3000
 ```
+
+`MONGO_URI` is required. If it is missing, the app will not start.
 
 ### Install Dependencies
 
@@ -52,9 +58,7 @@ PORT=3000
 npm install
 ```
 
-### Run the Application
-
-Start the Express backend (also serves the `public/` frontend):
+### Start the App
 
 ```bash
 npm run start
@@ -66,71 +70,132 @@ You can also use:
 npm run server
 ```
 
-Then open your browser to: [http://localhost:3000](http://localhost:3000)
+Then open [http://localhost:3000](http://localhost:3000).
 
-Tenant entry points:
+## School Entry Points
 
-- `http://localhost:3000/uvu/login`
-- `http://localhost:3000/uofu/login`
+- UVU login: `http://localhost:3000/uvu/login`
+- UofU login: `http://localhost:3000/uofu/login`
 
-Seeded admin credentials:
+Seeded admin accounts:
 
 - `root_uvu / willy`
 - `root_uofu / swoopy`
 
----
+## Available Scripts
 
-## Project Structure
+- `npm run start` starts the server with `tsx`
+- `npm run server` starts the same server command
+- `npm run build` compiles TypeScript files to JavaScript
+- `npm test` runs the automated Node test suite
+- `npm run cy:open` opens Cypress
+- `npm run cy:run` runs Cypress headlessly
 
-```
-CS4690/
-├── public/
-│   ├── index.html        # Main HTML page
-│   ├── script.ts         # Frontend logic (jQuery, AJAX, theme)
-│   ├── uvu-seal.jpg      # UVU seal (light mode)
-│   └── uvu-seal-light.jpg# UVU seal (dark mode)
-├── models/
-│   ├── Course.ts         # Mongoose schema for Courses
-│   └── Log.ts            # Mongoose schema for Logs
-├── server.ts             # Express server configuration
-├── db.ts                 # MongoDB connection logic
-├── cypress/              # End-to-end tests
-├── tsconfig.json         # TypeScript configuration
-└── package.json
+## Important Build Note
+
+Server-side TypeScript files such as `app.ts` and `server.ts` run through `tsx`, so they are used when the server starts.
+
+Frontend code in `public/script.ts` is compiled to `public/script.js`. If you change frontend TypeScript, run:
+
+```bash
+npm run build
 ```
 
----
+before expecting those browser changes to appear.
 
-## Tenant Routing
+## Testing
 
-Each campus uses a separate URL space and visual theme:
+### Automated Tests
 
-- `/uvu/*` → Utah Valley University
-- `/uofu/*` → University of Utah
+Run the Node test suite:
 
-All API access is tenant-scoped under:
+```bash
+npm test
+```
+
+This covers API behavior and unit-level logic, including role rules and school isolation.
+
+### Cypress Tests
+
+Start the app first, then run:
+
+```bash
+npm run cy:run
+```
+
+or open the Cypress UI with:
+
+```bash
+npm run cy:open
+```
+
+The Cypress config uses `http://localhost:3000` as the base URL.
+
+## Routing and Isolation
+
+School routes:
+
+- `/uvu/*` for Utah Valley University
+- `/uofu/*` for University of Utah
+
+API routes:
 
 - `/api/uvu/*`
 - `/api/uofu/*`
+- `/api/auth/session` for the current active session, regardless of school
 
----
+The app enforces school separation so users from UVU cannot view or manage UofU data, and users from UofU cannot view or manage UVU data.
 
-## Features
+If a signed-in user manually navigates to a protected route they should not access, the frontend logs the attempt, signs the user out, and redirects them to the correct login page.
 
-- **Role-aware authentication** – Separate login and signup pages with session-backed auth
-- **Admin page** – View all tenant users/courses/logs, create teachers/TAs/students, and create courses
-- **Teacher page** – Create courses, create TAs/students, add members, and review course logs
-- **TA page** – View assigned courses/logs, create students, and add students to a course
-- **Student page** – View only personal courses/logs and self-enroll into available courses
-- **Tenant isolation** – UVU and UofU data never mix in API responses or dashboards
-- **Tenant-specific GUI** – Green UVU theme and crimson UofU theme
-- **SPA routing** – Frontend routes for landing, login, signup, and role dashboards
+## Current Features
 
----
+- Landing page with separate UVU and UofU entry cards
+- Login and signup pages for each school
+- School-themed dashboards for admins, teachers, TAs, and students
+- Dedicated create pages for courses, admins, teachers, TAs, and students
+- Directory views for current users
+- Admin delete controls for users and courses
+- Course deletion that also deletes associated logs and enrollments
+- Detail pages for courses, students, and logs
+- Student self-enrollment into available courses
+- Course membership management
+- Course log creation and review
 
-## Development Notes
+## Project Structure
 
-- The project uses **ESM (ECMAScript Modules)**. All relative imports in `.ts` files must include the `.js` extension (e.g., `import { x } from './y.js'`).
-- Use `npm run build` to compile the TypeScript files for production.
-- Use `npm run start` or `npm run server` during development to run the Express server with `tsx` (no manual compile step needed).
-- Use `npm test` to run the automated integration tests against an in-memory MongoDB instance.
+```text
+CS4690/
+├── app.ts                  # Main Express app and API routes
+├── server.ts               # Server entry point
+├── db.ts                   # MongoDB connection helper
+├── seed.ts                 # Seed helpers for default data
+├── public/
+│   ├── index.html          # SPA host page
+│   ├── script.ts           # Frontend TypeScript source
+│   ├── script.js           # Compiled frontend bundle served by the browser
+│   ├── styles.css          # Bootstrap overrides and custom styling
+│   ├── uvu-seal.jpg        # UVU image asset
+│   ├── uvu-seal-light.jpg  # Additional UVU image asset
+│   └── BlockU_RGB.jpg      # UofU image asset
+├── models/
+│   ├── Course.ts           # Course schema
+│   ├── Enrollment.ts       # Course membership schema
+│   ├── Log.ts              # Log schema
+│   └── User.ts             # User schema
+├── tests/
+│   ├── api.test.ts         # API and authorization tests
+│   └── domain.unit.test.ts # Unit tests
+├── cypress/
+│   ├── e2e/                # End-to-end specs
+│   └── support/            # Cypress support files
+├── cypress.config.ts
+├── tsconfig.json
+└── package.json
+```
+
+## Notes
+
+- The project uses ESM-style imports in TypeScript.
+- The app uses MongoDB through Mongoose, not `db.json`, for the current application flow.
+- If frontend changes do not show up, rebuild with `npm run build` and refresh the browser.
