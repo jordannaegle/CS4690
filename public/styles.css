@@ -224,6 +224,36 @@ body {
 }
 
 /* ============================================================
+   Admin directory panel — keep large school rosters contained
+   so the course grid remains visible without excessive page scroll
+   ============================================================ */
+[data-cy="action_pages_panel"],
+[data-cy="tenant_directory_panel"] {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: min(26rem, 70vh) !important;
+  max-height: min(26rem, 70vh) !important;
+  overflow: hidden;
+}
+
+[data-cy="action_pages_panel"] > .d-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+  scrollbar-gutter: stable;
+}
+
+[data-cy="tenant_directory"] {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+  scrollbar-gutter: stable;
+}
+
+/* ============================================================
    Campus card seal sizing on landing page
    ============================================================ */
 .campus-seal {
@@ -248,5 +278,10 @@ body {
     width: 44px;
     height: 44px;
     border-radius: 12px;
+  }
+
+  [data-cy="action_pages_panel"],
+  [data-cy="tenant_directory_panel"] {
+    height: auto;
   }
 }

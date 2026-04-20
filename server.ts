@@ -7,6 +7,8 @@ dotenv.config();
 
 export const app = createApp();
 
+// Start the app by connecting to MongoDB, seeding required school admins, and then
+// opening the HTTP listener on the configured port.
 async function startServer(): Promise<void> {
   await connectDB();
   await ensureSeedData();

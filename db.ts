@@ -3,6 +3,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Open the MongoDB connection for either the provided URI or the configured
+// environment variable so both production code and tests can share one helper.
 const connectDB = async (mongoUri?: string) => {
   const connectionString: string = mongoUri || process.env.MONGO_URI || '';
 

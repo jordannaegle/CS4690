@@ -31,6 +31,8 @@ interface AppOptions {
   sessionSecret?: string;
 }
 
+// Convert incoming string IDs into ObjectIds early so route handlers fail fast with
+// a clear error instead of letting invalid values propagate into Mongoose queries.
 function toObjectId(value: string, label = 'ID'): Types.ObjectId {
   if (!Types.ObjectId.isValid(value)) {
     const err = new Error(`Invalid ${label}: "${value}" is not a valid ObjectId`);
@@ -40,6 +42,8 @@ function toObjectId(value: string, label = 'ID'): Types.ObjectId {
   return new Types.ObjectId(value);
 }
 
+// Normalize the user shape returned to the client so API payloads stay small and
+// never expose internal database-only fields such as password hashes.
 function toUserSummary(user: {
   _id: Types.ObjectId | string;
   username: string;
@@ -54,21 +58,29 @@ function toUserSummary(user: {
   };
 }
 
+// Read the app's auth payload from the session in one place so the rest of the
+// request pipeline can treat session access consistently.
 function getSessionAuth(req: Request): SessionAuth | undefined {
   const maybeSession = req.session as session.Session & Partial<session.SessionData> & { auth?: SessionAuth };
   return maybeSession.auth;
 }
 
+// Persist the active user's identity and school in the session after login/signup
+// so later requests can be scoped to the correct school.
 function setSessionAuth(req: Request, auth: SessionAuth): void {
   const maybeSession = req.session as session.Session & Partial<session.SessionData> & { auth?: SessionAuth };
   maybeSession.auth = auth;
 }
 
+// Remove the auth payload from the session when a user logs out or when the session
+// becomes invalid for the requested school.
 function clearSessionAuth(req: Request): void {
   const maybeSession = req.session as session.Session & Partial<session.SessionData> & { auth?: SessionAuth };
   delete maybeSession.auth;
 }
 
+// Return the common auth response payload used after login/signup and by session
+// checks so the frontend always knows the user, school, and home route.
 function sendAuthPayload(res: Response, user: { _id: Types.ObjectId | string; username: string; displayName: string; role: UserRole }, tenant: TenantKey): void {
   res.json({
     user: toUserSummary(user),
@@ -77,6 +89,8 @@ function sendAuthPayload(res: Response, user: { _id: Types.ObjectId | string; us
   });
 }
 
+// Validate the school slug from the route and attach the normalized value to the
+// request so downstream handlers do not need to re-parse it.
 function normalizeTenant(req: AuthedRequest, res: Response, next: NextFunction): void {
   const tenantParam = req.params.tenant;
   const rawTenant = Array.isArray(tenantParam) ? tenantParam[0] : tenantParam;
@@ -90,6 +104,8 @@ function normalizeTenant(req: AuthedRequest, res: Response, next: NextFunction):
   next();
 }
 
+// Require a signed-in user whose session matches the requested school, then attach
+// the resolved user record for later authorization checks.
 async function requireAuth(req: AuthedRequest, res: Response, next: NextFunction): Promise<void> {
   const tenant = req.currentTenant;
   const auth = getSessionAuth(req);
@@ -117,6 +133,8 @@ async function requireAuth(req: AuthedRequest, res: Response, next: NextFunction
   next();
 }
 
+// Build role-based middleware so each route can declare which roles are allowed
+// without repeating the same authorization logic.
 function requireRole(roles: UserRole[]) {
   return (req: AuthedRequest, res: Response, next: NextFunction): void => {
     const user = req.currentUser;
@@ -130,6 +148,8 @@ function requireRole(roles: UserRole[]) {
   };
 }
 
+// Look up a user's membership role within a course so the app can decide what that
+// person may view or manage inside that course.
 async function getMembershipRole(tenant: TenantKey, courseId: string, userId: string): Promise<MembershipRole | null> {
   if (!Types.ObjectId.isValid(courseId) || !Types.ObjectId.isValid(userId)) {
     return null;
@@ -143,6 +163,8 @@ async function getMembershipRole(tenant: TenantKey, courseId: string, userId: st
   return membership ? membership.role : null;
 }
 
+// Centralize course-management rules so teachers, TAs, and admins all get the
+// same permissions no matter which endpoint triggers the check.
 async function canManageCourse(user: NonNullable<AuthedRequest['currentUser']>, tenant: TenantKey, courseId: string): Promise<boolean> {
   if (user.role === 'admin') {
     return true;
@@ -161,6 +183,8 @@ async function canManageCourse(user: NonNullable<AuthedRequest['currentUser']>, 
   return false;
 }
 
+// Delete a course together with its dependent enrollments and logs so the database
+// is not left with orphaned records.
 async function deleteCourseRecords(tenant: TenantKey, courseId: Types.ObjectId): Promise<void> {
   await Promise.all([
     Log.deleteMany({ tenant, courseId }),
@@ -169,6 +193,8 @@ async function deleteCourseRecords(tenant: TenantKey, courseId: Types.ObjectId):
   ]);
 }
 
+// Delete a user and the user-owned records that should disappear with that account
+// to keep school data internally consistent.
 async function deleteUserRecords(tenant: TenantKey, userId: Types.ObjectId): Promise<void> {
   await Promise.all([
     Enrollment.deleteMany({ tenant, userId }),
@@ -183,6 +209,8 @@ async function deleteUserRecords(tenant: TenantKey, userId: Types.ObjectId): Pro
   ]);
 }
 
+// Assemble the dashboard payload for the signed-in user by filtering visible
+// courses, memberships, logs, and school directory data to that user's scope.
 async function buildDashboard(tenant: TenantKey, user: NonNullable<AuthedRequest['currentUser']>) {
   const visibleCourseIds = new Set<string>();
   const membershipMap = new Map<string, MembershipRole>();
@@ -353,6 +381,8 @@ async function buildDashboard(tenant: TenantKey, user: NonNullable<AuthedRequest
   };
 }
 
+// Create the configured Express application, including session handling, school-
+// scoped API routes, and all role-aware course/log management endpoints.
 export function createApp(options: AppOptions = {}) {
   const app = express();
   const publicDirectory = path.resolve(process.cwd(), 'public');

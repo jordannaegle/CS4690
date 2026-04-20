@@ -33,6 +33,8 @@ const state = {
     dashboard: null,
     route: { tenant: null, page: 'landing', segments: [], pathname: window.location.pathname }
 };
+// Parse the current browser path into a lightweight route object so the SPA can
+// decide which screen to render without a client-side router library.
 function getRouteState() {
     const segments = window.location.pathname.split('/').filter(Boolean);
     if (segments.length === 0) {
@@ -49,6 +51,7 @@ function getRouteState() {
     }
     return { tenant: null, page: 'landing', segments: [], pathname: window.location.pathname };
 }
+// Move within the SPA using History API updates, then re-render the matching view.
 function navigate(path, replace = false) {
     if (replace) {
         window.history.replaceState({}, '', path);
@@ -58,12 +61,16 @@ function navigate(path, replace = false) {
     }
     void renderRoute();
 }
+// Store a transient message that the next render can surface to the user.
 function setFlash(tone, text) {
     state.flash = { tone, text };
 }
+// Clear the current flash message once a view no longer needs to show it.
 function clearFlash() {
     state.flash = null;
 }
+// Escape user-controlled text before inserting it into HTML templates to prevent
+// markup injection in the client-rendered views.
 function escapeHtml(value) {
     return value
         .replace(/&/g, '&amp;')
@@ -72,6 +79,8 @@ function escapeHtml(value) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 }
+// Wrap fetch with the app's shared JSON defaults and consistent error handling so
+// every page can call the API the same way.
 async function apiRequest(path, init = {}) {
     const response = await fetch(path, {
         ...init,
@@ -96,24 +105,33 @@ async function apiRequest(path, init = {}) {
     }
     return body;
 }
+// Request the session scoped to the school currently shown in the URL.
 async function fetchSession(tenant) {
     return (await apiRequest(`/api/${tenant}/auth/session`)) ?? null;
 }
+// Request whichever school session is currently active so cross-school redirects
+// can detect and clear the wrong login.
 async function fetchCurrentSession() {
     return (await apiRequest('/api/auth/session')) ?? null;
 }
+// Load the dashboard payload that powers each role's main workspace.
 async function fetchDashboard(tenant) {
     return await apiRequest(`/api/${tenant}/dashboard`);
 }
+// Load one course detail view when the user opens a course-specific route.
 async function fetchCourseDetail(tenant, courseId) {
     return await apiRequest(`/api/${tenant}/courses/${courseId}`);
 }
+// Load the visible course and log history for a single student detail page.
 async function fetchStudentDetail(tenant, studentId) {
     return await apiRequest(`/api/${tenant}/students/${studentId}`);
 }
+// Load one log record plus its linked course/student context for the log detail view.
 async function fetchLogDetail(tenant, logId) {
     return await apiRequest(`/api/${tenant}/logs/${logId}`);
 }
+// Toggle the page-level school theme so Bootstrap variables and custom CSS switch
+// between neutral, UVU, and UofU branding.
 function applyTheme(tenant) {
     const body = document.body;
     if (!tenant) {
@@ -124,6 +142,7 @@ function applyTheme(tenant) {
     // in styles.css override Bootstrap's --bs-primary and related variables.
     body.setAttribute('data-tenant', tenant);
 }
+// Resolve the app mount point once and fail loudly if the page shell is incomplete.
 function getAppRoot() {
     const app = document.getElementById('app');
     if (!app) {
@@ -131,6 +150,8 @@ function getAppRoot() {
     }
     return app;
 }
+// Render the shared shell used by every screen, including the header, flash
+// message area, and school-aware logout behavior.
 function renderShell(content, tenant) {
     const app = getAppRoot();
     const tenantMeta = state.session?.tenant;
@@ -183,6 +204,7 @@ function renderShell(content, tenant) {
         });
     }
 }
+// Render the landing page that lets people choose between the two school workspaces.
 function renderLandingPage() {
     renderShell(`
       <section class="row g-4 py-4" data-cy="landing_page">
@@ -225,6 +247,7 @@ function renderLandingPage() {
       </section>
     `, null);
 }
+// Convert stored role keys into the labels shown throughout the UI.
 function getRoleLabel(role) {
     switch (role) {
         case 'admin':
@@ -237,18 +260,25 @@ function getRoleLabel(role) {
             return 'Student';
     }
 }
+// Build the canonical home route for a given school and role.
 function getRoleHomePath(tenant, role) {
     return `/${tenant}/${role}`;
 }
+// Read the second segment of a protected route to identify subpages like detail or
+// create screens.
 function getSubpage(route) {
     return route.segments[1] || null;
 }
+// Read the third route segment when the current screen points at a specific record.
 function getResourceId(route) {
     return route.segments[2] || null;
 }
+// Identify which routes require an authenticated school session before rendering.
 function isProtectedRoute(route) {
     return route.tenant !== null && route.page !== 'login' && route.page !== 'signup';
 }
+// Force a clean logout when someone manually enters a protected or cross-school URL
+// they should not be able to keep using.
 async function forceLogoutForProtectedRoute(targetTenant, logoutTenant, reason) {
     console.warn(reason);
     try {
@@ -262,6 +292,8 @@ async function forceLogoutForProtectedRoute(targetTenant, logoutTenant, reason) 
     setFlash('error', 'Protected route access was denied. Please sign in again.');
     navigate(`/${targetTenant}/login`, true);
 }
+// Handle detail-page fetch failures by distinguishing true permission problems from
+// normal load errors so the app can either log the user out or return them home.
 async function handleProtectedResourceError(error, tenant, role) {
     const message = error instanceof Error ? error.message : 'Unable to load the requested page';
     if (message.toLowerCase().includes('permission')) {
@@ -271,6 +303,7 @@ async function handleProtectedResourceError(error, tenant, role) {
     setFlash('error', message);
     navigate(getRoleHomePath(tenant, role), true);
 }
+// Return the role-specific action-page shortcuts that appear in each dashboard.
 function getActionLinks(tenant, role) {
     if (role === 'admin') {
         return [
@@ -295,9 +328,12 @@ function getActionLinks(tenant, role) {
     }
     return [];
 }
+// Detect route names reserved for the dedicated create pages.
 function isActionSubpage(subpage) {
     return subpage !== null && subpage.startsWith('create-');
 }
+// Provide copy for the shared account-creation page so one renderer can support
+// admins, teachers, TAs, and students.
 function getUserPageMeta(targetRole) {
     switch (targetRole) {
         case 'teacher':
@@ -330,9 +366,14 @@ function getUserPageMeta(targetRole) {
             };
     }
 }
+// Decide whether the current actor must attach the new account to a course. Teachers
+// still must place new TAs and students into one of their courses, while admins and
+// TAs may leave student assignment empty during creation.
 function requiresCourseAssignment(actorRole, targetRole) {
-    return actorRole !== 'admin' && (targetRole === 'ta' || targetRole === 'student');
+    return actorRole === 'teacher' && (targetRole === 'ta' || targetRole === 'student');
 }
+// Render the school-specific login or signup page and wire it to the matching auth
+// endpoint so authentication stays inside the selected school.
 function renderAuthPage(tenant, page) {
     const tenantMeta = {
         name: tenant === 'uvu' ? 'Utah Valley University' : 'University of Utah',
@@ -413,6 +454,8 @@ function renderAuthPage(tenant, page) {
         }
     });
 }
+// Attach delete handlers to any user-management buttons on the current screen so
+// admin pages can remove accounts and refresh the visible data immediately.
 function bindDeleteUserButtons(tenant) {
     document.querySelectorAll('[data-delete-user]').forEach((button) => {
         button.addEventListener('click', async () => {
@@ -436,6 +479,8 @@ function bindDeleteUserButtons(tenant) {
         });
     });
 }
+// Attach delete handlers to course-management buttons so admin course deletions
+// also update the current view after the API succeeds.
 function bindDeleteCourseButtons(tenant) {
     document.querySelectorAll('[data-delete-course]').forEach((button) => {
         button.addEventListener('click', async () => {
@@ -459,6 +504,8 @@ function bindDeleteCourseButtons(tenant) {
         });
     });
 }
+// Render the dedicated course-creation page and pair it with the visible course
+// list so admins and teachers can manage course setup from one place.
 function renderCreateCoursePage(tenant, dashboard) {
     const role = dashboard.user.role;
     const teacherUsers = dashboard.users.filter((user) => user.role === 'teacher');
@@ -556,6 +603,8 @@ function renderCreateCoursePage(tenant, dashboard) {
     });
     bindDeleteCourseButtons(tenant);
 }
+// Render the shared user-creation page for the selected target role, including the
+// optional side list admins use to review and delete existing accounts.
 function renderCreateUserPage(tenant, dashboard, targetRole) {
     const actorRole = dashboard.user.role;
     const meta = getUserPageMeta(targetRole);
@@ -572,7 +621,9 @@ function renderCreateUserPage(tenant, dashboard, targetRole) {
             <h1 class="fs-3 fw-bold mb-2">${meta.title}</h1>
             <p class="text-muted mb-0">${actorRole === 'admin'
         ? `Create a ${getRoleLabel(targetRole).toLowerCase()} account and manage everyone in that role for this school.`
-        : `Create a ${getRoleLabel(targetRole).toLowerCase()} account for one of your available courses.`}</p>
+        : actorRole === 'ta' && targetRole === 'student'
+            ? 'Create a student account now and optionally connect the student to one of your assigned courses.'
+            : `Create a ${getRoleLabel(targetRole).toLowerCase()} account for one of your available courses.`}</p>
           </div>
           <button class="btn btn-outline-secondary" data-link="${getRoleHomePath(tenant, actorRole)}" data-cy="back_to_role_home_button">Back to ${getRoleLabel(actorRole)} Page</button>
         </div>
@@ -666,6 +717,8 @@ function renderCreateUserPage(tenant, dashboard, targetRole) {
         bindDeleteUserButtons(tenant);
     }
 }
+// Render a course detail page that brings roster information and visible logs into
+// one route-specific view.
 function renderCourseDetailPage(tenant, role, detail) {
     const { course } = detail;
     renderShell(`
@@ -741,6 +794,8 @@ function renderCourseDetailPage(tenant, role, detail) {
       </section>
     `, tenant);
 }
+// Render the student detail page so staff can inspect one student's enrollments and
+// log history within the current school.
 function renderStudentDetailPage(tenant, role, detail) {
     renderShell(`
       <section class="card p-4 mb-4" data-cy="student_detail_page" data-student-id="${detail.student.id}">
@@ -800,6 +855,8 @@ function renderStudentDetailPage(tenant, role, detail) {
       </section>
     `, tenant);
 }
+// Render a focused detail page for one log entry along with links back to its
+// related course and student pages.
 function renderLogDetailPage(tenant, role, detail) {
     const { log } = detail;
     renderShell(`
@@ -837,9 +894,12 @@ function renderLogDetailPage(tenant, role, detail) {
       </section>
     `, tenant);
 }
+// Format timestamps for display using the browser's local date/time settings.
 function formatDate(dateString) {
     return new Date(dateString).toLocaleString();
 }
+// Build the course-card grid used on the dashboard so each role sees the controls,
+// roster, and logs appropriate to its permissions.
 function renderCourseCards(tenant, role, courses) {
     if (courses.length === 0) {
         return `
@@ -961,6 +1021,8 @@ function renderCourseCards(tenant, role, courses) {
     </div>
   `).join('');
 }
+// Render the main role dashboard, including action shortcuts, self-enrollment,
+// school directory data, and inline course/log controls.
 function renderDashboardPage(tenant, dashboard) {
     const role = dashboard.user.role;
     const actionLinks = getActionLinks(tenant, role);
@@ -1142,10 +1204,14 @@ function renderDashboardPage(tenant, dashboard) {
         });
     });
 }
+// Re-fetch the current dashboard payload after a mutation so the next render uses
+// fresh course, user, and log data from the server.
 async function refreshDashboard(tenant) {
     state.dashboard = await fetchDashboard(tenant);
     await renderRoute();
 }
+// Resolve the current route, session, and permissions, then choose the correct
+// screen to render or redirect for this browser location.
 async function renderRoute() {
     state.route = getRouteState();
     applyTheme(state.route.tenant);
@@ -1259,6 +1325,8 @@ async function renderRoute() {
     state.dashboard = await fetchDashboard(tenant);
     renderDashboardPage(tenant, state.dashboard);
 }
+// Intercept clicks on elements marked with data-link so navigation stays inside the
+// single-page app instead of triggering full page reloads.
 document.addEventListener('click', (event) => {
     const target = event.target;
     const linkTarget = target?.closest('[data-link]');
@@ -1271,8 +1339,10 @@ document.addEventListener('click', (event) => {
         navigate(href);
     }
 });
+// Re-render the SPA when the user navigates with the browser's back/forward buttons.
 window.addEventListener('popstate', () => {
     void renderRoute();
 });
+// Kick off the initial route render as soon as the script finishes loading.
 void renderRoute();
 //# sourceMappingURL=script.js.map

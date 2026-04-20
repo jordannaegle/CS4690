@@ -14,6 +14,8 @@ import { ensureSeedData } from '../seed.js';
 const app = createApp({ sessionSecret: 'test-secret' });
 let mongoServer: MongoMemoryServer;
 
+// Reuse the same login helper across tests so each scenario starts from a verified
+// authenticated session inside the requested school.
 async function loginAs(agent: SuperAgentTest, tenant: 'uvu' | 'uofu', username: string, password: string) {
   const response = await agent
     .post(`/api/${tenant}/auth/login`)
@@ -234,6 +236,15 @@ test('TAs can create students but cannot create another TA', async () => {
 
   assert.equal(createStudentResponse.status, 201);
 
+  const taCreatedStudent = await User.findOne({ tenant: 'uvu', username: 'new_student' }).lean();
+  assert.ok(taCreatedStudent);
+
+  const taCreatedStudentEnrollment = await Enrollment.findOne({
+    tenant: 'uvu',
+    userId: taCreatedStudent._id
+  }).lean();
+  assert.ok(taCreatedStudentEnrollment);
+
   const createTaAsTaResponse = await taAgent.post('/api/uvu/users').send({
     displayName: 'Forbidden TA',
     username: 'forbidden_ta',
@@ -243,6 +254,66 @@ test('TAs can create students but cannot create another TA', async () => {
   });
 
   assert.equal(createTaAsTaResponse.status, 403);
+});
+
+test('TAs can create students without assigning them to a course', async () => {
+  const adminAgent = request.agent(app);
+  const teacherAgent = request.agent(app);
+  const taAgent = request.agent(app);
+
+  await loginAs(adminAgent, 'uvu', 'root_uvu', 'willy');
+
+  await adminAgent.post('/api/uvu/users').send({
+    displayName: 'Taylor Teacher',
+    username: 'taylor_teacher',
+    password: 'teacherpass',
+    role: 'teacher'
+  });
+
+  const teacher = await User.findOne({ tenant: 'uvu', username: 'taylor_teacher' }).lean();
+  assert.ok(teacher);
+
+  await adminAgent.post('/api/uvu/courses').send({
+    code: 'CS 4700',
+    title: 'Distributed Systems',
+    teacherId: String(teacher._id)
+  });
+
+  const course = await Course.findOne({ tenant: 'uvu', code: 'CS 4700' }).lean();
+  assert.ok(course);
+
+  await loginAs(teacherAgent, 'uvu', 'taylor_teacher', 'teacherpass');
+
+  const createTaResponse = await teacherAgent.post('/api/uvu/users').send({
+    displayName: 'Jamie Assistant',
+    username: 'jamie_ta',
+    password: 'tapass',
+    role: 'ta',
+    courseId: String(course._id)
+  });
+
+  assert.equal(createTaResponse.status, 201);
+
+  await loginAs(taAgent, 'uvu', 'jamie_ta', 'tapass');
+
+  const createStudentResponse = await taAgent.post('/api/uvu/users').send({
+    displayName: 'Unassigned Student',
+    username: 'unassigned_student',
+    password: 'studentpass',
+    role: 'student'
+  });
+
+  assert.equal(createStudentResponse.status, 201);
+
+  const createdStudent = await User.findOne({ tenant: 'uvu', username: 'unassigned_student' }).lean();
+  assert.ok(createdStudent);
+
+  const enrollment = await Enrollment.findOne({
+    tenant: 'uvu',
+    userId: createdStudent._id
+  }).lean();
+
+  assert.equal(enrollment, null);
 });
 
 test('admins can delete non-admin users and clean up related student records', async () => {

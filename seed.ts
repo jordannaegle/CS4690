@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import User from './models/User.js';
 
+// Ensure the assignment's two school admin accounts always exist so the app and
+// automated tests can rely on predictable bootstrap credentials.
 export async function ensureSeedData(): Promise<void> {
   const rootAccounts = [
     {
