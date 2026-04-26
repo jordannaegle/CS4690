@@ -3,6 +3,8 @@ type UserRole = 'admin' | 'teacher' | 'ta' | 'student';
 type MembershipRole = 'teacher' | 'ta' | 'student';
 type FlashTone = 'success' | 'error' | 'info';
 
+// This interface is needed so the frontend can treat school branding and routing
+// metadata as one consistent object everywhere a school context is shown.
 interface TenantMeta {
   slug: TenantSlug;
   shortName: string;
@@ -10,6 +12,8 @@ interface TenantMeta {
   themeName: string;
 }
 
+// This interface is needed to keep user data lightweight and consistent across
+// dashboard lists, rosters, logs, and auth payloads.
 interface UserSummary {
   id: string;
   username: string;
@@ -17,6 +21,8 @@ interface UserSummary {
   role: UserRole;
 }
 
+// This interface is needed so every rendered log entry has the same shape,
+// including author and student information for role-aware views.
 interface CourseLog {
   id: string;
   text: string;
@@ -25,6 +31,8 @@ interface CourseLog {
   student: UserSummary;
 }
 
+// This interface is needed to describe the full course card/detail payload the UI
+// renders, including memberships, roster groups, and visible logs.
 interface CourseSummary {
   id: string;
   code: string;
@@ -37,6 +45,8 @@ interface CourseSummary {
   logs: CourseLog[];
 }
 
+// This interface is needed because the dashboard page is driven by one large API
+// response that combines the current user, school, visible courses, and directory data.
 interface DashboardData {
   user: UserSummary;
   tenant: TenantMeta;
@@ -49,10 +59,14 @@ interface DashboardData {
   users: UserSummary[];
 }
 
+// This interface is needed to type the course detail API response separately from
+// the broader dashboard payload.
 interface CourseDetailPayload {
   course: CourseSummary;
 }
 
+// This interface is needed because the student detail page requires a custom mix of
+// student info, enrolled courses, and course-linked log history.
 interface StudentDetailPayload {
   student: UserSummary;
   courses: Array<{
@@ -69,6 +83,8 @@ interface StudentDetailPayload {
   }>;
 }
 
+// This interface is needed so the log detail page can rely on a single log object
+// that already includes the related course context it needs to render navigation.
 interface LogDetailPayload {
   log: CourseLog & {
     course: {
@@ -80,17 +96,23 @@ interface LogDetailPayload {
   };
 }
 
+// This interface is needed to type the auth/session response that tells the SPA who
+// is signed in, which school they belong to, and where their home route is.
 interface SessionPayload {
   user: UserSummary;
   tenant: TenantMeta;
   route: string;
 }
 
+// This interface is needed so flash messages always carry both the message text and
+// the UI tone used to style alerts consistently.
 interface FlashMessage {
   tone: FlashTone;
   text: string;
 }
 
+// This interface is needed because the SPA manually parses URL segments and needs a
+// typed route object to decide which page to render next.
 interface RouteState {
   tenant: TenantSlug | null;
   page: string;
