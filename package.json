@@ -5,30 +5,33 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "server": "npm run build && json-server db.json --routes routes.json --static public",
+    "server": "tsx server.ts",
     "cy:open": "cypress open",
     "cy:run": "cypress run",
-    "start": "tsx server.ts"
+    "start": "tsx server.ts",
+    "test": "node --test --import tsx tests/**/*.test.ts"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/dotenv": "^6.1.1",
     "@types/express": "^5.0.6",
-    "@types/jquery": "^3.5.33",
     "@types/mongoose": "^5.11.96",
     "@types/node": "^25.5.0",
     "cypress": "^15.10.0",
-    "json-server": "0.17.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@types/express-session": "^1.19.0",
+    "@types/supertest": "^7.2.0",
+    "bcryptjs": "^3.0.3",
     "bootstrap": "^5.3.8",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "gh": "^2.8.9",
-    "jquery": "^4.0.0",
-    "mongoose": "^9.3.1"
+    "express-session": "^1.19.0",
+    "mongodb-memory-server": "^11.0.1",
+    "mongoose": "^9.3.1",
+    "supertest": "^7.2.2"
   }
 }

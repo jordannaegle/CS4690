@@ -1,24 +1,30 @@
-// models/Log.ts
 import mongoose, { Schema } from 'mongoose';
-// 2. Create the Schema
 const logSchema = new Schema({
+    tenant: {
+        type: String,
+        enum: ['uvu', 'uofu'],
+        required: true
+    },
     courseId: {
-        type: String,
+        type: Schema.Types.ObjectId,
+        ref: 'Course',
         required: true
     },
-    uvuId: {
-        type: String,
+    studentId: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
         required: true
     },
-    date: {
-        type: String,
+    authorId: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
         required: true
     },
     text: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     }
-});
-// 3. Export the strongly-typed model
+}, { timestamps: true });
 export default mongoose.model('Log', logSchema);
 //# sourceMappingURL=Log.js.map

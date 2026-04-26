@@ -1,17 +1,16 @@
 import mongoose, { Document, Schema, Types } from 'mongoose';
-import { TenantKey } from '../domain.js';
+import { MembershipRole, TenantKey } from '../domain.js';
 
-export interface ILog extends Document {
+export interface IEnrollment extends Document {
   tenant: TenantKey;
   courseId: Types.ObjectId;
-  studentId: Types.ObjectId;
-  authorId: Types.ObjectId;
-  text: string;
+  userId: Types.ObjectId;
+  role: MembershipRole;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const logSchema: Schema<ILog> = new Schema(
+const enrollmentSchema: Schema<IEnrollment> = new Schema(
   {
     tenant: {
       type: String,
@@ -23,23 +22,20 @@ const logSchema: Schema<ILog> = new Schema(
       ref: 'Course',
       required: true
     },
-    studentId: {
+    userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true
     },
-    authorId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
-    },
-    text: {
+    role: {
       type: String,
-      required: true,
-      trim: true
+      enum: ['teacher', 'ta', 'student'],
+      required: true
     }
   },
   { timestamps: true }
 );
 
-export default mongoose.model<ILog>('Log', logSchema);
+enrollmentSchema.index({ tenant: 1, courseId: 1, userId: 1 }, { unique: true });
+
+export default mongoose.model<IEnrollment>('Enrollment', enrollmentSchema);
